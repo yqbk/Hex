@@ -1,0 +1,32 @@
+{
+  "name": "hex",
+  "version": "1.0.0",
+  "description": "Hex",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon --watch index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yqbk/Hex.git"
+  },
+  "author": "Marek Łabuz, Jakub Syrek, Stanisław Wojdacki",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yqbk/Hex/issues"
+  },
+  "homepage": "https://github.com/yqbk/Hex#readme",
+  "dependencies": {
+    "eslint": "^3.15.0",
+    "express": "^4.14.1",
+    "nodemon": "^1.11.0"
+  },
+  "devDependencies": {
+    "eslint-config-airbnb": "^14.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx": "0.0.2",
+    "eslint-plugin-jsx-a11y": "^4.0.0",
+    "eslint-plugin-react": "^6.9.0"
+  }
+}
