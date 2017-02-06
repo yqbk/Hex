@@ -1,10 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 
-import Test from './components/Test'
+import Map from './views/Map/Map'
 
 ReactDOM.render(
-  <Test />,
+  <Map />,
   document.getElementById('root')  // eslint-disable-line
 )
 
