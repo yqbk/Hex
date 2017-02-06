@@ -13,14 +13,15 @@ class Hex {
 
     this.hex.buttonMode = true
     this.hex.click = () => {
-      console.log('sdfsdfsdf')
+      this.hex.clear()
+      this.render(0x00FFFF)
     }
   }
 
-  render () {
+  render (color = 0x66CCFF) {
     const s = this.s
     this.hex.lineStyle(2, 0xFF3300, 1)
-    this.hex.beginFill(0x66CCFF)
+    this.hex.beginFill(color)
     const halfWidth = (s * Math.sqrt(3)) / 2
     const relativePoints = [
       -halfWidth, -s / 2,
@@ -42,6 +43,12 @@ class Hex {
   }
 }
 
+
+function gameLoop () {
+  requestAnimationFrame(gameLoop) // eslint-disable-line
+  renderer.render(stage)
+}
+
 export function init () {
   const map = document.getElementById('map') // eslint-disable-line
   const WIDTH = window.innerWidth // eslint-disable-line
@@ -53,9 +60,10 @@ export function init () {
 
   stage = new PIXI.Container()
 
-  const hex1 = new Hex(100, 100)
+  const hex1 = new Hex(100, 100, 20)
   hex1.render()
 
 
   renderer.render(stage)
+  gameLoop()
 }
