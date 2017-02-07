@@ -6,6 +6,7 @@ let grid
 let container
 
 let dragging = false
+let moved = false
 
 class Hex {
   constructor (x, y, scale = 0.5) {
@@ -38,8 +39,10 @@ class Hex {
 
     this.selected = false
     this.hex.click = () => {
-      this.selected = !this.selected
-      this.hex.tint = this.selected ? 0x00FF00 : 0xFFFFFF
+      if (!moved) {
+        this.selected = !this.selected
+        this.hex.tint = this.selected ? 0x00FF00 : 0xFFFFFF
+      }
     }
   }
 
@@ -81,10 +84,13 @@ export function init () {
   map.appendChild(app.view)
 
   container = new PIXI.Container()
+  // container.pivot.x = 500
+  // container.pivot.y = 500
 
   container.interactive = true
   container.mousedown = () => {
     dragging = true
+    moved = false
   }
   container.mouseup = () => {
     dragging = false
@@ -93,6 +99,9 @@ export function init () {
     if (dragging) {
       container.x += e.data.originalEvent.movementX
       container.y += e.data.originalEvent.movementY
+      if (Math.abs(e.data.originalEvent.movementX) > 5 || Math.abs(e.data.originalEvent.movementY) > 5) {
+        moved = true
+      }
     }
   }
   let counter = 1
@@ -107,9 +116,9 @@ export function init () {
 
   // grid = _.range(1, 10 + 1).map(id => new Hex(100 * id, 300))
 
-  grid = createMap(15, 15, 85)
+  grid = createMap(30, 30, 85)
 
-  grid[5,15,25,34].type = 'water'
+  grid[5].type = 'water'
   grid.forEach(el => el.render())
 
   grid[5].addCastle()
