@@ -3,34 +3,51 @@ const http = require('http')
 const history = require('connect-history-api-fallback')
 const config = require('./webpack.config')
 const webpack = require('webpack')
-const WebSocketServer = require('websocket').server
+const WebSocket = require('ws')
 const redis = require('redis')
 const bluebird = require('bluebird')
+const uuid = require('uuid')
 
 bluebird.promisifyAll(redis.RedisClient.prototype)
 bluebird.promisifyAll(redis.Multi.prototype)
 const client = redis.createClient()
 
+client.on('connect', () => {
+  client.flushall()
+})
+
 const port = process.env.PORT || 5000
 const compiler = webpack(config)
 const app = express()
 const server = http.createServer(app)
+let buffer = []
 
-app.get('/hello', async (req, res) => {
-  const data = await client.getAsync('string key')
-  res.send(data)
-})
+// redis databases
+// 0 - users
+// 1 - hex
+
+const randomColor = () => {
+  const number = Math.floor(Math.random() * 16777215) + 1
+  return number.toString(16)
+}
 
 app.get('/register', async (req, res) => {
-  const data = await client.getAsync('string key')
-  res.send(data)
-})
+  const { name, hexId } = req.query
+  const user = { name, color: randomColor() }
+  const id = uuid.v4()
+  const result = await client.multi()
+    .select(0)
+    .set(id, JSON.stringify(user))
+    .exec()
 
-// client.set('string key', 'string val', () => {
-//   client.getAsync('string key').then((res) => {
-//     console.log(res)
-//   })
-// })
+  if (result) {
+    buffer.push({ type: 'PLAYER_REGISTERED', payload: user })
+    buffer.push({ type: 'SPAWN_PLAYER', payload: { id: hexId } })
+    res.send(id)
+  } else {
+    res.status(500)
+  }
+})
 
 app.use(history({
   index: '/index.html'
@@ -47,39 +64,30 @@ server.listen(port, '0.0.0.0', (err) => {
     console.log(err) // eslint-disable-line
     return
   }
-
-  console.log(`Listening on port ${port}`)  // eslint-disable-line
+  console.log(`Listening on port ${port}`) // eslint-disable-line
 })
 
-const wsServer = new WebSocketServer({
-  httpServer: server,
-  autoAcceptConnections: false
-})
+// ------------ WebSockets ---------------
 
-function originIsAllowed (origin) {
-  return true
-}
+const ws = new WebSocket.Server({ server })
+let players = []
 
-wsServer.on('request', (request) => {
-  if (!originIsAllowed(request.origin)) {
-    // Make sure we only accept requests from an allowed origin
-    request.reject()
-    console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.')
-    return
-  }
+ws.on('connection', (socket) => {
+  const id = uuid.v4()
+  players.push({ id, socket })
 
-  const connection = request.accept('echo-protocol', request.origin)
-  console.log(`${new Date()} Connection accepted.`)
-
-  connection.on('message', (message) => {
-    console.log(message)
-    if (message.type === 'utf8') {
-      console.log(`Received Message: ${message.utf8Data}`)
-      connection.sendUTF(message.utf8Data)
-    }
+  socket.on('message', () => {
+    // console.log('received: %s', message)
   })
 
-  connection.on('close', (reasonCode, description) => {
-    console.log(`${new Date()} Peer ${connection.remoteAddress} disconnected.`)
+  socket.on('close', () => {
+    players = players.filter(player => player.id !== id)
   })
 })
+
+setInterval(() => {
+  players.forEach(({ socket }) => {
+    socket.send(JSON.stringify(buffer))
+    buffer = []
+  })
+}, 1000)

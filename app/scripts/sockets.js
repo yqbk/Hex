@@ -1,18 +1,20 @@
-export function connect () {
-  const ws = new WebSocket('ws://localhost:5000', 'echo-protocol')
+export default function connect () {
+  const ws = new WebSocket('ws://localhost:5000', 'echo-protocol') // eslint-disable-line
+  const callbacks = {}
 
-  ws.onopen = function () {
-    ws.send(JSON.stringify({ a: 5 }))
-    console.log('Message is sent...')
+  ws.onopen = () => {}
+
+  ws.onmessage = (evt) => {
+    const buffer = JSON.parse(evt.data)
+    buffer.forEach(action => (callbacks[action.type] ? callbacks[action.type](action.payload) : null))
   }
 
-  ws.onmessage = function (evt) {
-    const receivedMsg = evt.data
-    console.log('Message is received...', receivedMsg)
-  }
+  ws.onclose = () => {}
 
-  ws.onclose = function () {
-    console.log('Connection is closed...')
+  return {
+    register: function (type, func) { // eslint-disable-line
+      callbacks[type] = func
+      return this
+    }
   }
 }
-

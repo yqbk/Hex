@@ -1,19 +1,16 @@
 import React, { Component } from 'react'
 
-import { init } from '../../scripts/index'
-import { connect } from '../../scripts/sockets'
+import init from '../../scripts/index'
 
 class Map extends Component {
 
   componentDidMount () {
     init()
-    connect()
   }
 
   render () {
     return (
-      <div id="map" style={{color: 0xFFFFFF}}>
-
+      <div id="map" style={{ color: 0xFFFFFF }}>
       </div>
     )
   }
