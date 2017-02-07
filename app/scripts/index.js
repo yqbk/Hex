@@ -78,10 +78,12 @@ export function init () {
       container.y += e.data.originalEvent.movementY
     }
   }
+  let counter = 1
   document.addEventListener('mousewheel', (e) => {
-    console.log(e)
-    // container.scale.x *= 2
-    // container.scale.y *= 2
+    counter += e.wheelDelta < 0 ? -0.05 : 0.05
+    counter = (counter >= 0.5 && counter <= 1.5 && counter) || (counter < 0.5 && 0.5) || (counter > 1.5 && 1.5)
+    container.scale.x = counter
+    container.scale.y = counter
   })
 
   app.stage.addChild(container)
