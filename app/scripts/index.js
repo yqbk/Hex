@@ -9,7 +9,24 @@ let dragging = false
 
 class Hex {
   constructor (x, y, scale = 0.5) {
-    this.hex = new PIXI.Sprite(PIXI.Texture.fromImage('images/water.png'))
+    this.type = 'grass'
+
+    switch (this.type) {
+      case 'grass':
+        this.hex = new PIXI.Sprite(PIXI.Texture.fromImage('images/grass.png'))
+        break
+      case 'water':
+        this.hex = new PIXI.Sprite(PIXI.Texture.fromImage('images/water.png'))
+        break
+      case 'sand':
+        this.hex = new PIXI.Sprite(PIXI.Texture.fromImage('images/sand.png'))
+        break
+      default:
+        this.hex = new PIXI.Sprite(PIXI.Texture.fromImage('images/grass.png'))
+        break
+    }
+
+
     this.hex.interactive = true
     this.hex.buttonMode = true
 
@@ -89,6 +106,8 @@ export function init () {
   // grid = _.range(1, 10 + 1).map(id => new Hex(100 * id, 300))
 
   grid = createMap(15, 15, 85)
+
+  grid[5,15,25,34].type = 'water'
   grid.forEach(el => el.render())
 
   grid[5].addCastle()
