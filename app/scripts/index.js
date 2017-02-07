@@ -6,6 +6,7 @@ let grid
 let container
 
 let dragging = false
+let moved = false
 
 class Hex {
   constructor (x, y, scale = 0.5, type = 'grass', id = 1) {
@@ -89,10 +90,13 @@ export function init () {
   map.appendChild(app.view)
 
   container = new PIXI.Container()
+  // container.pivot.x = 500
+  // container.pivot.y = 500
 
   container.interactive = true
   container.mousedown = () => {
     dragging = true
+    moved = false
   }
   container.mouseup = () => {
     dragging = false
@@ -101,10 +105,13 @@ export function init () {
     if (dragging) {
       container.x += e.data.originalEvent.movementX
       container.y += e.data.originalEvent.movementY
+      if (Math.abs(e.data.originalEvent.movementX) > 5 || Math.abs(e.data.originalEvent.movementY) > 5) {
+        moved = true
+      }
     }
   }
   let counter = 1
-  document.addEventListener('mousewheel', (e) => { // eslint-disable-line
+  document.addEventListener('mousewheel', (e) => {
     counter += e.wheelDelta < 0 ? -0.05 : 0.05
     counter = (counter >= 0.5 && counter <= 1.5 && counter) || (counter < 0.5 && 0.5) || (counter > 1.5 && 1.5)
     container.scale.x = counter
