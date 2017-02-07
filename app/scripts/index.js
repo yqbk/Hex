@@ -74,18 +74,23 @@ class Hex {
     this.selected = false
     this.hex.click = () => {
       this.selected = !this.selected
-
-      console.log('item selected')
       this.hex.tint = this.selected ? 0x00FF00 : 0xFFFFFF
-
-      // this.hex.clear()
-      // this.render(this.selected ? 0x00FF00 : 0x66CCFF)
     }
   }
 
   changePosition (moveX, moveY) {
     this.hex.x += moveX
     this.hex.y += moveY
+  }
+
+  addCastle() {
+    this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('castle.svg'))
+    this.castle.anchor.set(0.5)
+    this.castle.scale.set(0.1)
+    this.castle.x = this.hex.x
+    this.castle.y = this.hex.y
+
+    app.stage.addChild(this.castle)
   }
 
   render () {
@@ -118,4 +123,6 @@ export function init () {
 
   grid = createMap(15, 15, 85)
   grid.forEach(el => el.render())
+
+  grid[5].addCastle()
 }
