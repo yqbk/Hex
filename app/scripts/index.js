@@ -5,16 +5,16 @@ let stage
 let app
 let grid
 
-// function createMap (width, height, x) {
-//   // const unit = x * Math.sqrt(3) / 2
-//
-//   const line = _.range(0, height).reduce((acc, curr) => [
-//       ...acc,
-//       ..._.range(1, width + 1).map(id => new Hex(id * (2 * unit + x) + (curr % 2 === 0 ? 0 : unit + x / 2), 2 * x + curr * (unit - 3), unit, app))
-//     ], [])
-//
-//   return line
-// }
+function createMap (width, height, x) {
+
+  const line = _.range(0, height).reduce((acc, curr) => [
+      ...acc,
+      ..._.range(1, width + 1).map(id => new Hex( id * x + (curr % 2 === 0 ? 0 : x / 2 ), 100 + curr * (x - 10)))
+    ], [])
+
+  return line
+}
+
 
 class Hex {
   constructor (x, y, scale = 0.5) {
@@ -112,40 +112,11 @@ export function init () {
 
   app.stage.addChild(container)
 
-  grid = _.range(1, 10 + 1).map(id => new Hex(100 * id, 300))
+  // grid = _.range(1, 10 + 1).map(id => new Hex(100 * id, 300))
+
+  grid = createMap(10, 10, 85)
   grid.forEach(el => el.render())
 
 
-  // ----- create hex
 
-  // function createWater (x, y) {
-  //   const water = new PIXI.Sprite(texture)
-  //   water.interactive = true
-  //
-  //   // this button mode will mean the hand cursor appears when you roll over the water with your mouse
-  //   water.buttonMode = true
-  //
-  //   // center the water's anchor point
-  //   water.anchor.set(0.5)
-  //
-  //   // make it a bit bigger, so it's easier to grab
-  //   water.scale.set(0.5)
-  //
-  //   water
-  //     .on('pointerdown', onDragStart)
-  //     .on('pointerup', onDragEnd)
-  //     .on('pointerupoutside', onDragEnd)
-  //     .on('pointermove', onDragMove)
-  //     .on('resize', onResize)
-  //
-  //   water.x = x
-  //   water.y = y
-  //
-  //   app.stage.addChild(water)
-  //
-  //   return water
-  // }
-
-
-  // const waterTable = _.range(1, 10 + 1).map(id => new Hex(100 * id, 300, app))
 }
