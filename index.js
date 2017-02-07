@@ -88,6 +88,6 @@ ws.on('connection', (socket) => {
 setInterval(() => {
   players.forEach(({ socket }) => {
     socket.send(JSON.stringify(buffer))
-    buffer = []
   })
+  buffer = []
 }, 1000)
