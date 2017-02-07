@@ -1,37 +1,30 @@
 import _ from 'lodash'
 import * as PIXI from 'pixi.js'
 
-
 let renderer
 let stage
 
-function createMap (width, height, x) {
-
+function createMap (width, height, x, app) {
   const unit = x * Math.sqrt(3) / 2
-
-  // const line = [
-  //   ..._.range(1, width + 1).map(id => new Hex(id * (2 * unit + x), 100, unit)),
-  //   ..._.range(1, width + 1).map(id => new Hex(id * (2 * unit + x) + unit + x / 2, 100 + unit, unit))
-  // ]
 
   const line = _.range(0, height).reduce((acc, curr) => {
     return [
       ...acc,
-      ..._.range(1, width + 1).map(id => new Hex(id * (2 * unit + x) + (curr % 2 === 0 ? 0 : unit + x / 2), 100 + curr * unit, unit))
+      ..._.range(1, width + 1).map(id => new Hex(id * (2 * unit + x) + (curr % 2 === 0 ? 0 : unit + x / 2), 2 * x + curr * ( unit - 3 ) , unit, app))
     ]
   }, [])
 
   return line
-
 }
 
 class Hex {
-  constructor (x, y, s = 50) {
+  constructor (x, y, s = 50, app) {
     this.hex = new PIXI.Graphics()
     this.hex.interactive = true
     this.x = x
     this.y = y
     this.s = s
+    this.app = app
 
     this.selected = false
 
@@ -41,14 +34,14 @@ class Hex {
       this.selected = !this.selected
 
       this.hex.clear()
-      this.render(this.selected ? 0x00FF00 : 0xFF0000)
+      this.render(this.selected ? 0x00FF00 : 0x66CCFF)
 
     }
   }
 
   render (color = 0x66CCFF) {
     const s = this.s
-    // this.hex.lineStyle(2, 0xFF3300, 1)
+    this.hex.lineStyle(3, 0x000000, 1)
     this.hex.beginFill(color)
     const halfWidth = (s * Math.sqrt(3)) / 2
     const relativePoints = [
@@ -67,7 +60,7 @@ class Hex {
 
     this.hex.hitArea = new PIXI.Polygon(...relativePoints)
 
-    stage.addChild(this.hex)
+    this.app.stage.addChild(this.hex);
   }
 }
 
@@ -82,15 +75,28 @@ export function init () {
   const WIDTH = window.innerWidth // eslint-disable-line
   const HEIGHT = window.innerHeight // eslint-disable-line
 
-  renderer = PIXI.autoDetectRenderer(WIDTH, HEIGHT, null, true, true)
+  const app = new PIXI.Application(WIDTH, HEIGHT, { backgroundColor: 0x1099bb});
+  map.appendChild(app.view);
 
-  map.appendChild(renderer.view)
+  const container = new PIXI.Container();
 
-  stage = new PIXI.Container()
+  app.stage.addChild(container);
 
-  createMap(10,20,30).forEach(hex => hex.render())
+  //--------------------------
+  // renderer = PIXI.autoDetectRenderer(WIDTH, HEIGHT, null, true, true)
+  // renderer.backgroundColor = 0xFFFFFF
+  //
+  // map.appendChild(renderer.view)
+
+  // stage = new PIXI.Container()
+
+  createMap(15,20,40,app).forEach(hex => hex.render())
+
+  // let test = new Hex(100,100,40, app)
+  //
+  // test.render()
 
 
-  renderer.render(stage)
-  gameLoop()
+  // renderer.render(stage)
+  // gameLoop()
 }

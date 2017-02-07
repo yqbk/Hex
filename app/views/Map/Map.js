@@ -10,7 +10,7 @@ class Map extends Component {
 
   render () {
     return (
-      <div id="map">
+      <div id="map" style={{color: 0xFFFFFF}}>
 
       </div>
     )
