@@ -34,7 +34,8 @@
     "resolve-url-loader": "^1.6.1",
     "webpack": "^1.13.2",
     "webpack-dev-middleware": "^1.10.0",
-    "webpack-hot-middleware": "^2.16.1"
+    "webpack-hot-middleware": "^2.16.1",
+    "websocket": "^1.0.24"
   },
   "devDependencies": {
     "babel-core": "^6.14.0",
