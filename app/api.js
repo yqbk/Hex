@@ -8,3 +8,5 @@ export const register = params => axios(`${baseURL}/register`, { params })
     return true
   })
   .catch(() => false)
+
+export const getMap = () => axios(`${baseURL}/map.json`)

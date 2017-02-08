@@ -2,6 +2,7 @@ import _ from 'lodash'
 import * as PIXI from 'pixi.js'
 
 import connect from './sockets'
+import { getMap } from '../api'
 
 import Hex, { setMoved } from './classes/Hex'
 
@@ -15,18 +16,14 @@ const mapHeight = 15
 let dragging = false
 
 function createMap (width, height, x) {
-  const line = _.range(0, height).reduce((acc, curr) => [
-    ...acc,
-    ..._.range(1, width + 1).map(id => new Hex(
-        (id * x) + (curr % 2 === 0 ? 0 : x / 2),
-        100 + (curr * (x - 10)),
-        0.5,
-        'grass',
-        (curr * width) + id - 1)
-    )
-  ], [])
-
-  return line
+  return getMap()
+    .then(map => map.data.map(({ id }) => new Hex(
+      (id * x) + (id % 2 === 0 ? 0 : x / 2),
+      100 + (id * (x - 10)),
+      0.5,
+      'grass',
+      (id * width) + (id - 1))
+    ))
 }
 
 export default function init () {
@@ -67,36 +64,24 @@ export default function init () {
 
   app.stage.addChild(container)
 
-  grid = createMap(mapWidth, mapHeight, 85)
+  createMap(mapWidth, mapHeight, 85)
+    .then((grid) => {
+      grid.forEach((el) => {
+        el.addIdToImage(container)
+        el.render(container)
+      })
 
-  const waterTable = [6, 21, 22, 37, 38, 39, 52, 53, 54, 68, 69, 70, 82, 83, 84, 98, 113, 99, 129, 114, 129, 130, 145,
-    160, 174, 190, 191, 175, 205, 206, 220, 221, 222]
-  const sandTable = [139, 154, 153, 168, 184, 185, 186, 200, 169, 170, 155, 215, 214, 199, 198, 213, 212, 210, 211, 197,
-    196, 183, 182, 181, 167, 166, 167, 195, 180, 165]
+      grid[36].addCastle(container)
+      grid[2].addArmy(container)
 
-  grid.forEach((element, id) => {
-    if (waterTable.includes(id)) {
-      element.changeType('water')
-    } else if (sandTable.includes(id)) {
-      element.changeType('sand')
-    }
-  })
-
-  grid.forEach((el) => {
-    el.addIdToImage(container)
-    el.render(container)
-  })
-
-  grid[36].addCastle(container)
-  grid[2].addArmy(container)
-
-  connect()
-    .register('PLAYER_REGISTERED', (user) => {
-      console.log(user) // eslint-disable-line
-    })
-    .register('SPAWN_PLAYER', (hex) => {
-      const { id } = hex
-      grid[id - 2].addArmy(container)
-      grid[id - 1].addCastle(container)
+      connect()
+        .register('PLAYER_REGISTERED', (user) => {
+          console.log(user) // eslint-disable-line
+        })
+        .register('SPAWN_PLAYER', (hex) => {
+          const { id } = hex
+          grid[id - 2].addArmy(container)
+          grid[id - 1].addCastle(container)
+        })
     })
 }

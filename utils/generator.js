@@ -39,6 +39,20 @@ function getNeighbours (id, mapWidth = 15, mapHeight = 15) {
   ]
 }
 
+function getType (id) {
+  const water = [6, 21, 22, 37, 38, 39, 52, 53, 54, 68, 69, 70, 82, 83, 84, 98, 113, 99, 129, 114, 129, 130, 145,
+    160, 174, 190, 191, 175, 205, 206, 220, 221, 222]
+  const sand = [139, 154, 153, 168, 184, 185, 186, 200, 169, 170, 155, 215, 214, 199, 198, 213, 212, 210, 211, 197,
+    196, 183, 182, 181, 167, 166, 167, 195, 180, 165]
+
+  return (
+    (water.includes(id) && 'water') ||
+    (sand.includes(id) && 'sand') ||
+    ('grass')
+  )
+}
+
 module.exports = {
-  getNeighbours
+  getNeighbours,
+  getType
 }
