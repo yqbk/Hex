@@ -13,6 +13,7 @@ const HEIGHT = 15
 
 let dragging = false
 let moved = false
+let lastSelected
 
 class Player {
   constructor (name) {
@@ -98,18 +99,19 @@ class Hex {
 
 
     if (this.hex.contain === 'army') {
-      // ZMIENIA HEXA NA LEWO! DLACZEGO???
-      // this.startMarch = true
       this.showRange()
+      grid[this.id - 1].startMarch = true
 
-      grid[this.id].startMarch = true
-    } else if (grid[this.id + 1].startMarch === true) {
-      // dlaczego id a nie id + 1?
-      const lastPos = grid[this.id]
-      lastPos.destroyArmy()
-      lastPos.startMarch = false
+    } else if (grid[this.id].hex.tint === 0x00FF00) {
+
+      // const lastPos = grid[this.id]
+      grid[lastSelected].destroyArmy()
+      // lastPos.startMarch = false
       this.addArmy()
+    } else {
+      lastSelected = this.id
     }
+
   }
 
   changeType (type) {
@@ -164,16 +166,23 @@ class Hex {
 
   showRange () {
 
-    // this.id -= 1
+    const oneStepRange = (this.id % (2 * WIDTH)) >= WIDTH ?
+      [this.id, this.id + 1, this.id - 1, this.id + WIDTH, this.id + WIDTH + 1, this.id - WIDTH, this.id - WIDTH + 1] :
+      [this.id, this.id + 1, this.id - 1, this.id + WIDTH, this.id + WIDTH + 1, this.id - WIDTH, this.id - WIDTH + 1]
 
-    const range = [this.id, this.id + 1, this.id - 1, this.id + WIDTH, this.id + WIDTH - 1, this.id - WIDTH, this.id - WIDTH - 1]
+    const twoStepRange = (this.id % (2 * WIDTH)) >= WIDTH ?
+      [this.id + 2, this.id - 2, this.id + WIDTH + 2, this.id + WIDTH - 1, this.id + 2 * WIDTH, this.id + 2 * WIDTH + 1, this.id + 2 * WIDTH - 1,
+      this.id - WIDTH + 2, this.id - WIDTH - 1, this.id - 2 * WIDTH, this.id - 2 * WIDTH + 1, this.id - 2 * WIDTH - 1] :
+      [this.id + 2, this.id - 2,
+        this.id + WIDTH - 2, this.id + WIDTH - 1, this.id + 2 * WIDTH, this.id + 2 * WIDTH + 1, this.id + 2 * WIDTH - 1,
+        this.id - WIDTH - 2, this.id - WIDTH - 1, this.id - 2 * WIDTH, this.id - 2 * WIDTH + 1, this.id - 2 * WIDTH - 1]
 
+  //
+    const range = oneStepRange.concat(twoStepRange)
     console.log(range)
-
-    range.forEach( id => {
+    range.forEach((id) => {
       grid[id - 1].hex.tint = 0x00FF00
     })
-
   }
 
   destroyArmy () {
