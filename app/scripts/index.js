@@ -40,7 +40,6 @@ class Hex {
     this.scale = scale
     this.type = type
     this.id = id
-
     switch (this.type) {
       case 'grass':
         this.hex = new PIXI.Sprite(PIXI.Texture.fromImage('images/grass.png'))
@@ -57,27 +56,61 @@ class Hex {
     }
 
     this.hex.interactive = true
+
     this.hex.buttonMode = true
     this.hex.anchor.set(0.5)
     this.hex.scale.set(scale)
     this.hex.x = this.x
     this.hex.y = this.y
+    this.hex.contain = ''
+    this.startMarch = false
 
     this.selected = false
     this.hex.click = this.handleClick
   }
 
+  addIdToImage () {
+    const serializedSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><text x="64" y="100" text-anchor="middle" font-size="100">${this.id}</text></svg>`
+    const SVG_SOURCE = `data:image/svg+xml,${serializedSvg}`
+    const texture = PIXI.Texture.fromImage(SVG_SOURCE)
+    this.number = new PIXI.Sprite(texture)
+
+    // this.army = new PIXI.Sprite(PIXI.Texture.fromImage('images/army.svg'))
+    this.number.anchor.set(0.5)
+    this.number.scale.set(0.5)
+    this.number.x = this.hex.x + 5
+    this.number.y = this.hex.y + 5
+
+    container.addChild(this.number)
+  }
+
   handleClick () {
     if (!moved) {
       this.selected = !this.selected
-      this.hex.tint = this.selected ? 0x00FF00 : 0xFFFFFF
+      // this.hex.tint = this.selected ? 0x00FF00 : 0xFFFFFF
+      // this.hex.filter = 'outline'
       // rejestracja gracza w serwerze
       me.register({ hexId: this.id })
+    }
+
+
+    if (this.hex.contain === 'army') {
+      // ZMIENIA HEXA NA LEWO! DLACZEGO???
+      // this.startMarch = true
+
+      grid[this.id].startMarch = true
+    } else if (grid[this.id + 1].startMarch === true) {
+      // dlaczego id a nie id + 1?
+      const lastPos = grid[this.id]
+      lastPos.destroyArmy()
+      lastPos.startMarch = false
+      this.addArmy()
     }
   }
 
   changeType (type) {
     this.hex.destroy()
+    console.log('destroy army')
     this.constructor(this.x, this.y, this.scale, type, this.id)
   }
 
@@ -97,8 +130,38 @@ class Hex {
     this.castle.buttonMode = true
     this.castle.click = this.handleClick
 
+    this.hex.contain = 'castle'
+
     container.addChild(this.castle)
   }
+
+  addArmy () {
+    const serializedSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><text x="64" y="100" text-anchor="middle" font-size="100">😄</text></svg>'
+    const SVG_SOURCE = `data:image/svg+xml,${serializedSvg}`
+    const texture = PIXI.Texture.fromImage(SVG_SOURCE)
+    this.army = new PIXI.Sprite(texture)
+
+
+    // this.army = new PIXI.Sprite(PIXI.Texture.fromImage('images/army.svg'))
+    this.army.anchor.set(0.5)
+    this.army.scale.set(0.5)
+    this.army.x = this.hex.x
+    this.army.y = this.hex.y
+
+
+    this.army.interactive = true
+    this.army.buttonMode = true
+    this.army.click = this.handleClick
+
+    this.hex.contain = 'army'
+
+    container.addChild(this.army)
+  }
+
+  destroyArmy () {
+    this.army.destroy()
+  }
+
 
   render () {
     container.addChild(this.hex)
@@ -174,9 +237,14 @@ export default function init () {
     }
   })
 
-  grid.forEach(el => el.render())
+  grid.forEach((el) => {
+    el.addIdToImage()
+    el.render()
+  })
 
   grid[36].addCastle()
+
+  grid[2].addArmy()
 
   // funkcja connect służy do łączenie się przez WebSockety do serwera
   // serwer aktualnie wysyła co 1s (docelowo będzie 100ms) zmiany jakie zdarzyły się w ostatniej sekundzie
@@ -188,6 +256,10 @@ export default function init () {
     .register('SPAWN_PLAYER', (hex) => {
       const { id } = hex
       // nowy gracz dostaje zamek w miejscu, które sobie wybrał
+
+      console.log('spawn army')
+      grid[id - 2].addArmy()
+
       grid[id - 1].addCastle()
     })
 }
