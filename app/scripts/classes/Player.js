@@ -1,3 +1,5 @@
+import { register } from '../../api'
+
 class Player {
   constructor (name) {
     this.name = name

@@ -1,25 +1,18 @@
 import _ from 'lodash'
 import * as PIXI from 'pixi.js'
 
-import { register } from '../api'
 import connect from './sockets'
 
-import Hex from './classes/Hex'
-import Player from './classes/Player'
-
+import Hex, { setMoved } from './classes/Hex'
 
 let app
 let grid
 let container
 
-const WIDTH = 15
-const HEIGHT = 15
+const mapWidth = 15
+const mapHeight = 15
 
 let dragging = false
-let moved = false
-let lastSelected
-
-const me = new Player('john')
 
 function createMap (width, height, x) {
   const line = _.range(0, height).reduce((acc, curr) => [
@@ -29,7 +22,7 @@ function createMap (width, height, x) {
         100 + (curr * (x - 10)),
         0.5,
         'grass',
-        (curr * width) + id)
+        (curr * width) + id - 1)
     )
   ], [])
 
@@ -45,13 +38,12 @@ export default function init () {
   map.appendChild(app.view)
 
   container = new PIXI.Container()
-  // container.pivot.x = 500
-  // container.pivot.y = 500
-
+  container.scale.x = 0.6
+  container.scale.y = 0.6
   container.interactive = true
   container.mousedown = () => {
     dragging = true
-    moved = false
+    setMoved(false)
   }
   container.mouseup = () => {
     dragging = false
@@ -61,7 +53,7 @@ export default function init () {
       container.x += e.data.originalEvent.movementX
       container.y += e.data.originalEvent.movementY
       if (Math.abs(e.data.originalEvent.movementX) > 1 || Math.abs(e.data.originalEvent.movementY) > 1) {
-        moved = true
+        setMoved(true)
       }
     }
   }
@@ -75,7 +67,7 @@ export default function init () {
 
   app.stage.addChild(container)
 
-  grid = createMap(15, 15, 85)
+  grid = createMap(mapWidth, mapHeight, 85)
 
   const waterTable = [6, 21, 22, 37, 38, 39, 52, 53, 54, 68, 69, 70, 82, 83, 84, 98, 113, 99, 129, 114, 129, 130, 145,
     160, 174, 190, 191, 175, 205, 206, 220, 221, 222]
@@ -95,24 +87,16 @@ export default function init () {
     el.render(container)
   })
 
-  grid[36].addCastle(container, moved)
+  grid[36].addCastle(container)
+  grid[2].addArmy(container)
 
-  grid[2].addArmy(container, moved)
-
-  // funkcja connect służy do łączenie się przez WebSockety do serwera
-  // serwer aktualnie wysyła co 1s (docelowo będzie 100ms) zmiany jakie zdarzyły się w ostatniej sekundzie
-  // za pomocą funkcji 'register' rejestrujemy funkcje jakie mają się wykonać dla danej akcji
   connect()
     .register('PLAYER_REGISTERED', (user) => {
-      console.log(user)
+      console.log(user) // eslint-disable-line
     })
     .register('SPAWN_PLAYER', (hex) => {
       const { id } = hex
-      // nowy gracz dostaje zamek w miejscu, które sobie wybrał
-
-      console.log('spawn army')
-      grid[id - 2].addArmy(container, moved)
-
-      grid[id - 1].addCastle(container, moved)
+      grid[id - 2].addArmy(container)
+      grid[id - 1].addCastle(container)
     })
 }

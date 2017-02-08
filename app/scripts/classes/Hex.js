@@ -1,5 +1,13 @@
 import * as PIXI from 'pixi.js'
+import Player from './Player'
 
+const me = new Player('john')
+
+let moved = false
+
+export function setMoved (m) {
+  moved = m
+}
 
 class Hex {
   constructor (x, y, scale = 0.5, type = 'grass', id = 1) {
@@ -10,7 +18,7 @@ class Hex {
     this.scale = scale
     this.type = type
     this.id = id
-    this.neighbours = 0;
+    this.neighbours = 0
     switch (this.type) {
       case 'grass':
         this.hex = new PIXI.Sprite(PIXI.Texture.fromImage('images/grass.png'))
@@ -27,7 +35,6 @@ class Hex {
     }
 
     this.hex.interactive = true
-
     this.hex.buttonMode = true
     this.hex.anchor.set(0.5)
     this.hex.scale.set(scale)
@@ -35,7 +42,6 @@ class Hex {
     this.hex.y = this.y
     this.hex.contain = ''
     this.startMarch = false
-
     this.selected = false
     this.hex.click = this.handleClick
   }
@@ -55,7 +61,7 @@ class Hex {
     container.addChild(this.number)
   }
 
-  handleClick (moved) {
+  handleClick () {
     if (!moved) {
       this.selected = !this.selected
       // this.hex.tint = this.selected ? 0x00FF00 : 0xFFFFFF
@@ -64,21 +70,19 @@ class Hex {
       me.register({ hexId: this.id })
     }
 
-
-    if (this.hex.contain === 'army') {
-      this.showRange()
-      grid[this.id - 1].startMarch = true
-
-    } else if (grid[this.id].hex.tint === 0x00FF00) {
-
-      // const lastPos = grid[this.id]
-      grid[lastSelected].destroyArmy()
-      // lastPos.startMarch = false
-      this.addArmy()
-    } else {
-      lastSelected = this.id
-    }
-
+    // if (this.hex.contain === 'army') {
+    //   this.showRange()
+    //   grid[this.id - 1].startMarch = true
+    //
+    // } else if (grid[this.id].hex.tint === 0x00FF00) {
+    //
+    //   // const lastPos = grid[this.id]
+    //   grid[lastSelected].destroyArmy()
+    //   // lastPos.startMarch = false
+    //   this.addArmy()
+    // } else {
+    //   lastSelected = this.id
+    // }
   }
 
   changeType (type) {
@@ -91,7 +95,7 @@ class Hex {
     this.hex.y += moveY
   }
 
-  addCastle (container, moved) {
+  addCastle (container) {
     this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
     this.castle.anchor.set(0.5)
     this.castle.scale.set(0.1)
@@ -100,33 +104,29 @@ class Hex {
 
     this.castle.interactive = true
     this.castle.buttonMode = true
-    this.castle.click = () => this.handleClick(moved)
+    this.castle.click = this.handleClick
 
     this.hex.contain = 'castle'
 
     container.addChild(this.castle)
   }
 
-  addArmy (container, moved) {
-
+  addArmy (container) {
     this.army = new PIXI.Sprite(PIXI.Texture.fromImage('images/army.png'))
     this.army.anchor.set(0.5)
     this.army.scale.set(0.1)
     this.army.x = this.hex.x
     this.army.y = this.hex.y
 
-
     this.army.interactive = true
     this.army.buttonMode = true
-    this.army.click = () => this.handleClick(moved)
+    this.army.click = this.handleClick
 
     this.hex.contain = 'army'
-
     container.addChild(this.army)
   }
 
   showRange () {
-
     //   const oneStepRange = (this.id % (2 * WIDTH)) >= WIDTH ?
     //     [this.id, this.id + 1, this.id - 1, this.id + WIDTH, this.id + WIDTH + 1, this.id - WIDTH, this.id - WIDTH + 1] :
     //     [this.id, this.id + 1, this.id - 1, this.id + WIDTH, this.id + WIDTH + 1, this.id - WIDTH, this.id - WIDTH + 1]
@@ -149,7 +149,6 @@ class Hex {
   destroyArmy () {
     // this.army.destroy()
   }
-
 
   render (container) {
     container.addChild(this.hex)
