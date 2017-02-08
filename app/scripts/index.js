@@ -17,13 +17,13 @@ let dragging = false
 
 function createMap (width, height, x) {
   return getMap()
-    .then(map => map.data.map(({ id }) => new Hex(
-      (id * x) + (id % 2 === 0 ? 0 : x / 2),
-      100 + (id * (x - 10)),
+    .then(map => map.data.map(({ id, type }) => new Hex(
+      ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0),
+      (x - 10) * Math.floor(id / mapWidth),
       0.5,
-      'grass',
-      (id * width) + (id - 1))
-    ))
+      type,
+      id
+    )))
 }
 
 export default function init () {
