@@ -8,6 +8,9 @@ let app
 let grid
 let container
 
+const WIDTH = 15
+const HEIGHT = 15
+
 let dragging = false
 let moved = false
 
@@ -97,6 +100,7 @@ class Hex {
     if (this.hex.contain === 'army') {
       // ZMIENIA HEXA NA LEWO! DLACZEGO???
       // this.startMarch = true
+      this.showRange()
 
       grid[this.id].startMarch = true
     } else if (grid[this.id + 1].startMarch === true) {
@@ -156,6 +160,20 @@ class Hex {
     this.hex.contain = 'army'
 
     container.addChild(this.army)
+  }
+
+  showRange () {
+
+    // this.id -= 1
+
+    const range = [this.id, this.id + 1, this.id - 1, this.id + WIDTH, this.id + WIDTH - 1, this.id - WIDTH, this.id - WIDTH - 1]
+
+    console.log(range)
+
+    range.forEach( id => {
+      grid[id - 1].hex.tint = 0x00FF00
+    })
+
   }
 
   destroyArmy () {
