@@ -53,13 +53,17 @@ async function register (req, res) {
       throw new Error('This field is already taken')
     }
     hex.owner = playerId
+    hex.home = true
 
     const randomHexNeighbourId = hex.neighbours[Math.floor(Math.random() * hex.neighbours.length)]
     const hexNeighbour = JSON.parse(await client.getAsync(randomHexNeighbourId))
     hexNeighbour.army = 10
-    await client.setAsync(randomHexNeighbourId, JSON.stringify(hexNeighbour))
 
-    await client.setAsync(hexId, JSON.stringify(hex))
+    await Promise.all([
+      await client.setAsync(randomHexNeighbourId, JSON.stringify(hexNeighbour)),
+      await client.setAsync(hexId, JSON.stringify(hex))
+    ])
+
     await client.select(0)
     await client.setAsync(playerId, JSON.stringify(user))
 
@@ -73,9 +77,38 @@ async function register (req, res) {
   }
 }
 
-async function armyMove (id, payload) {
-  const data = await client.getAsync(id)
-  console.log(payload, data)
+async function armyMove (id, { from, to, number }) {
+  try {
+    await client.select(1)
+
+    const [hexFrom, hexTo] = (await Promise.all([
+      await client.getAsync(from),
+      await client.getAsync(to)
+    ])).map(JSON.parse)
+
+    hexFrom.owner = id
+    hexTo.owner = id
+    hexTo.army = number > hexFrom.army ? hexFrom.army : number
+    hexFrom.army = number === undefined || number > hexFrom.army ? 0 : hexFrom.army - number
+
+    await Promise.all([
+      await client.setAsync(from, JSON.stringify(hexFrom)),
+      await client.setAsync(to, JSON.stringify(hexTo))
+    ])
+
+    buffer.push({
+      type: 'ARMY_MOVE',
+      payload: {
+        hexIdFrom: from,
+        hexIdTo: to,
+        hexFromArmyValue: hexFrom.army,
+        hexToArmyValue: hexTo.army,
+        playerId: id
+      }
+    })
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 module.exports = {
