@@ -18,8 +18,8 @@ function createMap (width, height, x) {
   return getMap()
     .then(map => map.data.map(({ id, ...rest }) => new Hex({
       id,
-      x: ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0),
-      y: (x - 10) * Math.floor(id / mapWidth),
+      x: ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0) + 600,
+      y: (x - 10) * Math.floor(id / mapWidth) + 200,
       ...rest
     })))
 }
@@ -38,8 +38,8 @@ export default function init () {
   map.appendChild(app.view)
 
   container = new PIXI.Container()
-  container.scale.x = 0.6
-  container.scale.y = 0.6
+  container.scale.x = 0.7
+  container.scale.y = 0.7
   container.interactive = true
   container.mousedown = () => {
     dragging = true
