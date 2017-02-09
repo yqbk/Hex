@@ -13,6 +13,7 @@ const app = express()
 const server = http.createServer(app)
 
 app.get('/register', redisController.register)
+app.get('/map', redisController.getMap)
 
 app.use(history({
   index: '/index.html'
@@ -67,8 +68,14 @@ connect()
 
 
 setInterval(() => {
-  players.forEach(({ socket }) => {
-    socket.send(JSON.stringify(redisController.getBuffer()))
-  })
-  redisController.clearBuffer()
-}, 1000)
+  if (redisController.getBuffer().length > 0) {
+    players.forEach(({ socket }) => {
+      try {
+        socket.send(JSON.stringify(redisController.getBuffer()))
+      } catch (err) {
+        console.log(err)
+      }
+    })
+    redisController.clearBuffer()
+  }
+}, 100)

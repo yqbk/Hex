@@ -9,4 +9,4 @@ export const register = params => axios(`${baseURL}/register`, { params })
   })
   .catch(() => false)
 
-export const getMap = () => axios(`${baseURL}/map.json`)
+export const getMap = () => axios(`${baseURL}/map`)

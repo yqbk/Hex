@@ -16,12 +16,11 @@ let dragging = false
 
 function createMap (width, height, x) {
   return getMap()
-    .then(map => map.data.map(({ id, type, neighbours }) => new Hex({
+    .then(map => map.data.map(({ id, ...rest }) => new Hex({
       id,
       x: ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0),
       y: (x - 10) * Math.floor(id / mapWidth),
-      type,
-      neighbours
+      ...rest
     })))
 }
 
@@ -58,7 +57,7 @@ export default function init () {
       }
     }
   }
-  let counter = 1
+  // let counter = 1
   // document.addEventListener('mousewheel', (e) => { // eslint-disable-line
   //   counter += e.wheelDelta < 0 ? -0.05 : 0.05
   //   counter = (counter >= 0.5 && counter <= 1.5 && counter) || (counter < 0.5 && 0.5) || (counter > 1.5 && 1.5)
@@ -74,17 +73,15 @@ export default function init () {
         el.render(container, grid)
       })
 
-      grid[36].addCastle()
-      grid[2].changeArmyValue(10)
-
       connect()
-        .register('PLAYER_REGISTERED', (user) => {
-          console.log(user) // eslint-disable-line
+        .register('PLAYER_REGISTERED', () => {})
+        .register('SPAWN_CASTLE', ({ hexId, playerId }) => {
+          grid[hexId].setCastle()
+          grid[hexId].changeOwner(playerId)
         })
-        .register('SPAWN_PLAYER', (hex) => {
-          const { id } = hex
-          grid[id - 1].changeArmyValue(10)
-          grid[id].addCastle()
+        .register('SPAWN_ARMY', ({ hexId, playerId, armyValue }) => {
+          grid[hexId].changeArmyValue(armyValue)
+          grid[hexId].changeOwner(playerId)
         })
     })
 }

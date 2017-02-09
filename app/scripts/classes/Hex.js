@@ -18,7 +18,7 @@ const armyTextStyle = new PIXI.TextStyle({
 })
 
 class Hex {
-  constructor ({ id, x, y, type = 'grass', neighbours }) {
+  constructor ({ id, x, y, type = 'grass', neighbours, owner, army }) {
     this.handleClick = this.handleClick.bind(this)
 
     this.id = id
@@ -26,12 +26,22 @@ class Hex {
     this.y = y
     this.type = type
     this.neighbours = neighbours
+    this.owner = owner
 
     this.hex = new PIXI.Sprite(PIXI.Texture.fromImage(`images/${type}.png`))
     this.initializeItem('hex', this.x, this.y, 0.5)
-
     this.container = new PIXI.Container()
     this.container.addChild(this.hex)
+
+    if (owner) {
+      this.setCastle()
+    }
+
+    if (army) {
+      this.changeArmyValue(army)
+    }
+
+    this.reinitializeBorders()
   }
 
   initializeItem (item, x, y, scale) {
@@ -43,6 +53,10 @@ class Hex {
     this[item].scale.set(scale)
     this[item].x = x
     this[item].y = y
+  }
+
+  reinitializeBorders () {
+
   }
 
   handleClick () {
@@ -68,11 +82,19 @@ class Hex {
     }
   }
 
+  changeOwner (owner) {
+    this.owner = owner
+    this.reinitializeBorders()
+  }
+
   changeHexTint (color, id) {
     this.grid[id].hex.tint = color
   }
 
-  addCastle () {
+  setCastle () {
+    if (this.castle) {
+      this.castle.destroy()
+    }
     this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
     this.initializeItem('castle', this.hex.x, this.hex.y, 0.1)
     this.container.addChild(this.castle)
@@ -82,9 +104,13 @@ class Hex {
     if (this.army) {
       this.army.destroy()
     }
-    this.army = new PIXI.Text(value, armyTextStyle)
-    this.initializeItem('army', this.hex.x, this.hex.y, 0.5)
-    this.container.addChild(this.army)
+
+    if (value !== 0) {
+      this.army = new PIXI.Text(value, armyTextStyle)
+      this.initializeItem('army', this.hex.x, this.hex.y, 0.5)
+      this.container.addChild(this.army)
+      this.reinitializeBorders()
+    }
   }
 
   render (globalContainer, grid) {

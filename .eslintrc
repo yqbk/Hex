@@ -13,7 +13,8 @@
     "react/jsx-indent": 0,
     "linebreak-style": 0,
     "max-len": 0,
-    "jsx-a11y/no-marquee": 0
+    "jsx-a11y/no-marquee": 0,
+    "no-console": 0
   },
   "parser": "babel-eslint"
 }
