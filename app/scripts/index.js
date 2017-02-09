@@ -1,4 +1,4 @@
-import _ from 'lodash'
+// import _ from 'lodash'
 import * as PIXI from 'pixi.js'
 
 import connect from './sockets'
@@ -7,7 +7,6 @@ import { getMap } from '../api'
 import Hex, { setMoved } from './classes/Hex'
 
 let app
-let grid
 let container
 
 const mapWidth = 15
@@ -17,13 +16,13 @@ let dragging = false
 
 function createMap (width, height, x) {
   return getMap()
-    .then(map => map.data.map(({ id, type }) => new Hex(
-      ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0),
-      (x - 10) * Math.floor(id / mapWidth),
-      0.5,
+    .then(map => map.data.map(({ id, type, neighbours }) => new Hex({
+      id,
+      x: ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0),
+      y: (x - 10) * Math.floor(id / mapWidth),
       type,
-      id
-    )))
+      neighbours
+    })))
 }
 
 export default function init () {
@@ -31,7 +30,12 @@ export default function init () {
   const WIDTH = window.innerWidth // eslint-disable-line
   const HEIGHT = window.innerHeight // eslint-disable-line
 
-  app = new PIXI.Application(WIDTH, HEIGHT, { transparent: true, antialias: true })
+  app = new PIXI.Application(WIDTH, HEIGHT, {
+    transparent: true,
+    antialias: true,
+    autoResize: true,
+    resolution: window.devicePixelRatio || 1 // eslint-disable-line
+  })
   map.appendChild(app.view)
 
   container = new PIXI.Container()
@@ -54,7 +58,7 @@ export default function init () {
       }
     }
   }
-  // let counter = 1
+  let counter = 1
   // document.addEventListener('mousewheel', (e) => { // eslint-disable-line
   //   counter += e.wheelDelta < 0 ? -0.05 : 0.05
   //   counter = (counter >= 0.5 && counter <= 1.5 && counter) || (counter < 0.5 && 0.5) || (counter > 1.5 && 1.5)
@@ -67,12 +71,11 @@ export default function init () {
   createMap(mapWidth, mapHeight, 85)
     .then((grid) => {
       grid.forEach((el) => {
-        el.addIdToImage(container)
-        el.render(container)
+        el.render(container, grid)
       })
 
-      grid[36].addCastle(container)
-      grid[2].addArmy(container)
+      grid[36].addCastle()
+      grid[2].changeArmyValue(10)
 
       connect()
         .register('PLAYER_REGISTERED', (user) => {
@@ -80,8 +83,8 @@ export default function init () {
         })
         .register('SPAWN_PLAYER', (hex) => {
           const { id } = hex
-          grid[id - 2].addArmy(container)
-          grid[id - 1].addCastle(container)
+          grid[id - 1].changeArmyValue(10)
+          grid[id].addCastle()
         })
     })
 }
