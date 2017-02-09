@@ -1,5 +1,7 @@
 import * as PIXI from 'pixi.js'
+
 import Player from './Player'
+import { armyMove } from '../sockets'
 
 const me = new Player('john')
 
@@ -46,31 +48,28 @@ class Hex {
   handleClick () {
     if (!moved) {
       me.register({ hexId: this.id })
+
       if (this.grid[selectedHex]) {
         this.changeHexTint(0xFFFFFF, selectedHex)
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
+
+        if (this.grid[selectedHex].army && this.grid[selectedHex].neighbours.includes(this.id)) {
+          armyMove(selectedHex, this.id, 10)
+        }
       }
-      selectedHex = this.id
+
       this.hex.tint = 0x99FF99
 
       if (this.army) {
         this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
       }
+
+      selectedHex = this.id
     }
   }
 
   changeHexTint (color, id) {
     this.grid[id].hex.tint = color
-  }
-
-  changeType (type) {
-    this.hex.destroy()
-    this.constructor(this.x, this.y, this.scale, type, this.id)
-  }
-
-  changePosition (moveX, moveY) {
-    this.hex.x += moveX
-    this.hex.y += moveY
   }
 
   addCastle () {
