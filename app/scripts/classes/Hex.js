@@ -18,7 +18,7 @@ const armyTextStyle = new PIXI.TextStyle({
 })
 
 class Hex {
-  constructor ({ id, x, y, type = 'grass', neighbours, owner, army }) {
+  constructor ({ id, x, y, type = 'grass', neighbours, owner, army, home }) {
     this.handleClick = this.handleClick.bind(this)
 
     this.id = id
@@ -27,18 +27,19 @@ class Hex {
     this.type = type
     this.neighbours = neighbours
     this.owner = owner
+    this.home = home
 
     this.hex = new PIXI.Sprite(PIXI.Texture.fromImage(`images/${type}.png`))
     this.initializeItem('hex', this.x, this.y, 0.5)
     this.container = new PIXI.Container()
     this.container.addChild(this.hex)
 
-    if (owner) {
+    if (home) {
       this.setCastle()
     }
 
     if (army) {
-      this.changeArmyValue(army)
+      this.changeArmyValue(owner, army)
     }
 
     this.reinitializeBorders()
@@ -91,16 +92,20 @@ class Hex {
     this.grid[id].hex.tint = color
   }
 
-  setCastle () {
+  setCastle (playerId) {
     if (this.castle) {
       this.castle.destroy()
     }
+    this.home = true
     this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
     this.initializeItem('castle', this.hex.x, this.hex.y, 0.1)
     this.container.addChild(this.castle)
+    if (playerId) {
+      this.changeOwner(playerId)
+    }
   }
 
-  changeArmyValue (value) {
+  changeArmyValue (value, playerId) {
     if (this.army) {
       this.army.destroy()
     }
@@ -109,8 +114,11 @@ class Hex {
       this.army = new PIXI.Text(value, armyTextStyle)
       this.initializeItem('army', this.hex.x, this.hex.y, 0.5)
       this.container.addChild(this.army)
-      this.reinitializeBorders()
+      if (playerId) {
+        this.changeOwner(playerId)
+      }
     }
+    this.reinitializeBorders()
   }
 
   render (globalContainer, grid) {

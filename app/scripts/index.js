@@ -76,12 +76,15 @@ export default function init () {
       connect()
         .register('PLAYER_REGISTERED', () => {})
         .register('SPAWN_CASTLE', ({ hexId, playerId }) => {
-          grid[hexId].setCastle()
-          grid[hexId].changeOwner(playerId)
+          grid[hexId].setCastle(playerId)
         })
         .register('SPAWN_ARMY', ({ hexId, playerId, armyValue }) => {
-          grid[hexId].changeArmyValue(armyValue)
-          grid[hexId].changeOwner(playerId)
+          grid[hexId].changeArmyValue(armyValue, playerId)
+        })
+        .register('ARMY_MOVE', ({ hexIdFrom, hexIdTo, playerId, hexFromArmyValue, hexToArmyValue }) => {
+          console.log({ hexIdFrom, hexIdTo, playerId, hexFromArmyValue, hexToArmyValue })
+          grid[hexIdFrom].changeArmyValue(hexFromArmyValue, playerId)
+          grid[hexIdTo].changeArmyValue(hexToArmyValue, playerId)
         })
     })
 }
