@@ -18,7 +18,7 @@ const armyTextStyle = new PIXI.TextStyle({
 })
 
 class Hex {
-  constructor ({ id, x, y, type = 'grass', neighbours, owner, army, home }) {
+  constructor ({ id, x, y, type = 'grass', neighbours, owner, army, castle }) {
     this.handleClick = this.handleClick.bind(this)
 
     this.id = id
@@ -27,15 +27,16 @@ class Hex {
     this.type = type
     this.neighbours = neighbours
     this.owner = owner
-    this.home = home
 
     this.hex = new PIXI.Sprite(PIXI.Texture.fromImage(`images/${type}.png`))
     this.initializeItem('hex', this.x, this.y, 0.5)
     this.container = new PIXI.Container()
     this.container.addChild(this.hex)
 
-    if (home) {
-      this.setCastle()
+    if (castle) {
+      this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
+      this.initializeItem('castle', this.hex.x, this.hex.y, 0.1)
+      this.container.addChild(this.castle)
     }
 
     if (army) {
@@ -92,18 +93,18 @@ class Hex {
     this.grid[id].hex.tint = color
   }
 
-  setCastle (player) {
-    if (this.castle) {
-      this.castle.destroy()
-    }
-    this.home = true
-    this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
-    this.initializeItem('castle', this.hex.x, this.hex.y, 0.1)
-    this.container.addChild(this.castle)
-    if (player) {
-      this.changeOwner(player)
-    }
-  }
+  // setCastle (player) {
+  //   if (this.castle) {
+  //     this.castle.destroy()
+  //   }
+  //   this.home = true
+  //   this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
+  //   this.initializeItem('castle', this.hex.x, this.hex.y, 0.1)
+  //   this.container.addChild(this.castle)
+  //   if (player) {
+  //     this.changeOwner(player)
+  //   }
+  // }
 
   changeArmyValue (value, player) {
     if (this.army) {

@@ -75,9 +75,6 @@ export default function init () {
 
       connect()
         .register('PLAYER_REGISTERED', () => {})
-        .register('SPAWN_CASTLE', ({ hexId, player }) => {
-          grid[hexId].setCastle(player)
-        })
         .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue }) => {
           grid[hexId].changeArmyValue(armyValue, player)
         })

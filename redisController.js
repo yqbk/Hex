@@ -52,11 +52,13 @@ async function register (req, res) {
 
     await client.select(1)
     const hex = JSON.parse(await client.getAsync(hexId))
+    if (!hex.castle) {
+      throw new Error('You need to choose a castle')
+    }
     if (hex.owner) {
       throw new Error('This field is already taken')
     }
     hex.owner = player
-    hex.home = true
 
     const randomHexNeighbourId = hex.neighbours[Math.floor(Math.random() * hex.neighbours.length)]
     const hexNeighbour = JSON.parse(await client.getAsync(randomHexNeighbourId))
@@ -69,7 +71,6 @@ async function register (req, res) {
     ])
 
     buffer.push({ type: 'PLAYER_REGISTERED', payload: player })
-    buffer.push({ type: 'SPAWN_CASTLE', payload: { player, hexId } })
     buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { player, hexId: randomHexNeighbourId, armyValue: 10 } })
     res.send(playerId)
   } catch (err) {
