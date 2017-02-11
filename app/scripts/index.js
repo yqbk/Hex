@@ -19,7 +19,7 @@ function createMap (width, height, x) {
     .then(map => map.data.map(({ id, ...rest }) => new Hex({
       id,
       x: ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0) + 600,
-      y: (x - 10) * Math.floor(id / mapWidth) + 200,
+      y: ((x - 10) * Math.floor(id / mapWidth)) + 200,
       ...rest
     })))
 }
@@ -75,16 +75,14 @@ export default function init () {
 
       connect()
         .register('PLAYER_REGISTERED', () => {})
-        .register('SPAWN_CASTLE', ({ hexId, playerId }) => {
-          grid[hexId].setCastle(playerId)
+        .register('SPAWN_CASTLE', ({ hexId, player }) => {
+          grid[hexId].setCastle(player)
         })
-        .register('SPAWN_ARMY', ({ hexId, playerId, armyValue }) => {
-          grid[hexId].changeArmyValue(armyValue, playerId)
+        .register('SPAWN_ARMY', ({ hexId, player, armyValue }) => {
+          grid[hexId].changeArmyValue(armyValue, player)
         })
-        .register('ARMY_MOVE', ({ hexIdFrom, hexIdTo, playerId, hexFromArmyValue, hexToArmyValue }) => {
-          console.log({ hexIdFrom, hexIdTo, playerId, hexFromArmyValue, hexToArmyValue })
-          grid[hexIdFrom].changeArmyValue(hexFromArmyValue, playerId)
-          grid[hexIdTo].changeArmyValue(hexToArmyValue, playerId)
+        .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue }) => {
+          grid[hexId].changeArmyValue(armyValue, player)
         })
     })
 }

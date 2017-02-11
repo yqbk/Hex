@@ -44,32 +44,33 @@ async function getMap (req, res) {
 
 async function register (req, res) {
   const { name, hexId } = req.query
-  const user = { name, color: randomColor() }
   const playerId = uuid.v4()
+  const player = { id: playerId, name, color: randomColor() }
   try {
+    await client.select(0)
+    await client.setAsync(playerId, JSON.stringify(player))
+
     await client.select(1)
     const hex = JSON.parse(await client.getAsync(hexId))
     if (hex.owner) {
       throw new Error('This field is already taken')
     }
-    hex.owner = playerId
+    hex.owner = player
     hex.home = true
 
     const randomHexNeighbourId = hex.neighbours[Math.floor(Math.random() * hex.neighbours.length)]
     const hexNeighbour = JSON.parse(await client.getAsync(randomHexNeighbourId))
     hexNeighbour.army = 10
+    hexNeighbour.owner = player
 
     await Promise.all([
       await client.setAsync(randomHexNeighbourId, JSON.stringify(hexNeighbour)),
       await client.setAsync(hexId, JSON.stringify(hex))
     ])
 
-    await client.select(0)
-    await client.setAsync(playerId, JSON.stringify(user))
-
-    buffer.push({ type: 'PLAYER_REGISTERED', payload: user })
-    buffer.push({ type: 'SPAWN_CASTLE', payload: { playerId, hexId } })
-    buffer.push({ type: 'SPAWN_ARMY', payload: { playerId, hexId: randomHexNeighbourId, armyValue: 10 } })
+    buffer.push({ type: 'PLAYER_REGISTERED', payload: player })
+    buffer.push({ type: 'SPAWN_CASTLE', payload: { player, hexId } })
+    buffer.push({ type: 'SPAWN_ARMY', payload: { player, hexId: randomHexNeighbourId, armyValue: 10 } })
     res.send(playerId)
   } catch (err) {
     console.log(err)
@@ -79,6 +80,9 @@ async function register (req, res) {
 
 async function armyMove (id, { from, to, number }) {
   try {
+    await client.select(0)
+    const player = await client.getAsync(id)
+
     await client.select(1)
 
     const [hexFrom, hexTo] = (await Promise.all([
@@ -86,8 +90,8 @@ async function armyMove (id, { from, to, number }) {
       await client.getAsync(to)
     ])).map(JSON.parse)
 
-    hexFrom.owner = id
-    hexTo.owner = id
+    hexFrom.owner = player
+    hexTo.owner = player
     hexTo.army = number > hexFrom.army ? hexFrom.army : number
     hexFrom.army = number === undefined || number > hexFrom.army ? 0 : hexFrom.army - number
 
@@ -96,16 +100,8 @@ async function armyMove (id, { from, to, number }) {
       await client.setAsync(to, JSON.stringify(hexTo))
     ])
 
-    buffer.push({
-      type: 'ARMY_MOVE',
-      payload: {
-        hexIdFrom: from,
-        hexIdTo: to,
-        hexFromArmyValue: hexFrom.army,
-        hexToArmyValue: hexTo.army,
-        playerId: id
-      }
-    })
+    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { hexId: from, armyValue: hexFrom.army, player } })
+    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { hexId: to, armyValue: hexTo.army, player } })
   } catch (err) {
     console.log(err)
   }

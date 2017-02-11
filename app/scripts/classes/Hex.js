@@ -92,7 +92,7 @@ class Hex {
     this.grid[id].hex.tint = color
   }
 
-  setCastle (playerId) {
+  setCastle (player) {
     if (this.castle) {
       this.castle.destroy()
     }
@@ -100,12 +100,12 @@ class Hex {
     this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
     this.initializeItem('castle', this.hex.x, this.hex.y, 0.1)
     this.container.addChild(this.castle)
-    if (playerId) {
-      this.changeOwner(playerId)
+    if (player) {
+      this.changeOwner(player)
     }
   }
 
-  changeArmyValue (value, playerId) {
+  changeArmyValue (value, player) {
     if (this.army) {
       this.army.destroy()
     }
@@ -114,8 +114,8 @@ class Hex {
       this.army = new PIXI.Text(value, armyTextStyle)
       this.initializeItem('army', this.hex.x, this.hex.y, 0.5)
       this.container.addChild(this.army)
-      if (playerId) {
-        this.changeOwner(playerId)
+      if (player) {
+        this.changeOwner(player)
       }
     }
     this.reinitializeBorders()
