@@ -91,8 +91,8 @@ async function armyMove (id, { from, to, number }) {
       await client.getAsync(to)
     ])).map(JSON.parse)
 
-    hexFrom.owner = player
-    hexTo.owner = player
+    // hexFrom.owner = player
+    hexTo.owner = hexFrom.owner
     hexTo.army = number > hexFrom.army ? hexFrom.army : number
     hexFrom.army = number === undefined || number > hexFrom.army ? 0 : hexFrom.army - number
 
@@ -101,8 +101,8 @@ async function armyMove (id, { from, to, number }) {
       await client.setAsync(to, JSON.stringify(hexTo))
     ])
 
-    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { hexId: from, armyValue: hexFrom.army, player } })
-    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { hexId: to, armyValue: hexTo.army, player } })
+    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { hexId: from, armyValue: hexFrom.army, player: hexFrom.owner } })
+    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { hexId: to, armyValue: hexTo.army, player: hexFrom.owner } })
   } catch (err) {
     console.log(err)
   }

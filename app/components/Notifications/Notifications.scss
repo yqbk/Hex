@@ -1,0 +1,15 @@
+.container {
+  & > span {
+    position: fixed;
+    color: red;
+    display: flex;
+    flex-direction: column;
+    top: 50%;
+  }
+}
+
+.item {
+  position: absolute;
+  width: 200px;
+  transition: top 0.5s;
+}

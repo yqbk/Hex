@@ -28,8 +28,10 @@ class Hex {
     this.neighbours = neighbours
     this.owner = owner
 
+
     this.hex = new PIXI.Sprite(PIXI.Texture.fromImage(`images/${type}.png`))
     this.initializeItem('hex', this.x, this.y, 0.5)
+
     this.container = new PIXI.Container()
     this.container.addChild(this.hex)
 
@@ -58,7 +60,9 @@ class Hex {
   }
 
   reinitializeBorders () {
-
+    if (this.owner) {
+      this.hex.tint = `0x${this.owner.color}`
+    }
   }
 
   handleClick () {
@@ -72,6 +76,9 @@ class Hex {
         if (this.grid[selectedHex].army && this.grid[selectedHex].neighbours.includes(this.id)) {
           armyMove(selectedHex, this.id, 10)
         }
+
+        this.grid[selectedHex].reinitializeBorders()
+        this.grid[selectedHex].neighbours.forEach(id => this.reinitializeBorders.bind(this.grid[id])())
       }
 
       this.hex.tint = 0x99FF99
@@ -81,6 +88,9 @@ class Hex {
       }
 
       selectedHex = this.id
+
+      this.reinitializeBorders()
+      this.neighbours.forEach(id => this.reinitializeBorders.bind(this.grid[id])())
     }
   }
 
