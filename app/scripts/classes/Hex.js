@@ -39,7 +39,7 @@ class Hex {
     }
 
     if (army) {
-      this.changeArmyValue(owner, army)
+      this.changeArmyValue(army, owner)
     }
 
     this.reinitializeBorders()
