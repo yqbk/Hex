@@ -16,7 +16,7 @@ let dragging = false
 
 function createMap (width, height, x) {
   return getMap()
-    .then(map => map.data.map(({ id, ...rest }) => new Hex({
+    .then(({ data }) => data.map(({ id, ...rest }) => new Hex({
       id,
       x: ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0) + 600,
       y: ((x - 10) * Math.floor(id / mapWidth)) + 200,
@@ -77,9 +77,6 @@ export default function init () {
         .register('PLAYER_REGISTERED', () => {})
         .register('SPAWN_CASTLE', ({ hexId, player }) => {
           grid[hexId].setCastle(player)
-        })
-        .register('SPAWN_ARMY', ({ hexId, player, armyValue }) => {
-          grid[hexId].changeArmyValue(armyValue, player)
         })
         .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue }) => {
           grid[hexId].changeArmyValue(armyValue, player)
