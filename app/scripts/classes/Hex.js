@@ -92,49 +92,26 @@ class Hex {
     }
   }
 
-  // findShortestPath (from, to, depth, path) {
-  //   this.grid[from].neighbours.forEach((id) => {
-  //
-  //     if (id === to) {
-  //       console.log('found')
-  //       return [id, ...path]
-  //     } else {
-  //       console.log(`---starting from ${id}`)
-  //       if (depth === 0) {
-  //         console.log('... ended here')
-  //       } else {
-  //         return [id, ...this.grid[selectedHex].neighbours.forEach( (id) => this.findShortestPath(id, to, depth - 1, [id, ...path]))]
-  //       }
-  //     }
-  //     return []
-  //   })
-  // }
-
   startMovingArmy (from, to, number) {
     const directions = this.grid[from].neighbours
 
-    // if (directions.indexOf(to) > -1) {
-    //   armyMove(from, to, number - 1)
-    // } else {
-      for (const move of directions) {
-        console.log(`${number} - move.x : ${this.grid[move].x}  \nto.y. : ${this.grid[to].x}  \nfrom.x. : ${this.grid[from].x} \n `)
-        console.log(`diff: ${Math.abs(this.grid[move].x - this.grid[to].x)} --- ${Math.abs(this.grid[to].x - this.grid[from].x)}`)
+    for (const move of directions) {
+      // console.log(`${number} - move.x : ${this.grid[move].x}  \nto.y. : ${this.grid[to].x}  \nfrom.x. : ${this.grid[from].x} \n `)
+      // console.log(`diff: ${Math.abs(this.grid[move].x - this.grid[to].x)} --- ${Math.abs(this.grid[to].x - this.grid[from].x)}`)        //
+      // console.log(Math.abs(this.grid[move].x - this.grid[to].x) <= Math.abs(this.grid[to].x - this.grid[from].x))
 
-        console.log(Math.abs(this.grid[move].x - this.grid[to].x) <= Math.abs(this.grid[to].x - this.grid[from].x))
+      if ((Math.abs(this.grid[move].x - this.grid[to].x) + (Math.abs(this.grid[move].y - this.grid[to].y)))
+        <= (Math.abs(this.grid[to].x - this.grid[from].x) + Math.abs(this.grid[to].y - this.grid[from].y))) {
+        setTimeout(() => {
+          armyMove(from, this.grid[move].id, number)
+          this.startMovingArmy(this.grid[move].id, to, number)
+        }, 1000)
 
-        if ((Math.abs(this.grid[move].x - this.grid[to].x) + (Math.abs(this.grid[move].y - this.grid[to].y)))
-          <= (Math.abs(this.grid[to].x - this.grid[from].x) + Math.abs(this.grid[to].y - this.grid[from].y))) {
-            setTimeout(() => {
-              armyMove(from, this.grid[move].id, number)
-              this.startMovingArmy(this.grid[move].id, to, number)
-            }, 1000)
-
-            console.log(`move from ${from} to ${this.grid[move].id}`)
-            break
-        }
+        console.log(`move from ${from} to ${this.grid[move].id}`)
+        break
       }
+    }
   }
-
 
   handleClick () {
     if (!moved) {
@@ -146,15 +123,14 @@ class Hex {
 
         if (this.grid[selectedHex].army && _.find(this.grid[selectedHex].neighbours, { id: this.id })) {
           this.startMovingArmy(selectedHex, this.id, 10)
-
         }
       }
 
       this.hex.tint = 0x99FF99
 
-      // if (this.army) {
-      //   this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
-      // }
+      if (this.army) {
+        this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
+      }
 
       selectedHex = this.id
     }
