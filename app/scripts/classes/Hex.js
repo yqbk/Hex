@@ -49,9 +49,10 @@ class Hex {
       this.container.addChild(this.castle)
     }
 
-    if (army) {
-      this.changeArmyValue(army, owner)
-    }
+    this.army = new PIXI.Text(army || 0, armyTextStyle)
+    this.initializeItem(this.army, this.hex.x, this.hex.y, 0.5)
+    this.container.addChild(this.army)
+    this.army.visible = !!army
   }
 
   initializeItem (item, x, y, scale) {
@@ -78,7 +79,7 @@ class Hex {
     if (this.owner && this.grid) {
       this.neighbours.forEach(({ id, index }) => {
         const neighbour = this.grid[id]
-        if (neighbour.owner && neighbour.owner.id === this.owner.id) {
+        if ((neighbour.owner && neighbour.owner.id === this.owner.id) || neighbour.type === 'water') {
           this.borders[index].visible = false
         } else {
           this.borders[index].visible = true
@@ -125,14 +126,15 @@ class Hex {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
-        if (this.grid[selectedHex].army ) {
-          this.startMovingArmy(selectedHex, this.id, 10)
+        if (this.grid[selectedHex].army && _.find(this.grid[selectedHex].neighbours, { id: this.id })) {
+          // this.startMovingArmy(selectedHex, this.id, 10)
+          armyMove(selectedHex, this.id, 10)
         }
       }
 
       this.hex.tint = 0x99FF99
 
-      if (this.army) {
+      if (this.army.visible) {
         this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
       }
 
@@ -141,7 +143,9 @@ class Hex {
   }
 
   changeOwner (owner) {
-    this.owner = owner
+    if (owner) {
+      this.owner = owner
+    }
     this.reinitializeBordersWithNeighbours()
   }
 
@@ -150,19 +154,9 @@ class Hex {
   }
 
   changeArmyValue (value, player) {
-    if (this.army) {
-      this.army.destroy()
-    }
-
-    if (value !== 0) {
-      this.army = new PIXI.Text(value, armyTextStyle)
-      this.initializeItem(this.army, this.hex.x, this.hex.y, 0.5)
-      this.container.addChild(this.army)
-      if (player) {
-        this.changeOwner(player)
-      }
-    }
-    this.reinitializeBordersWithNeighbours()
+    this.army.text = value
+    this.army.visible = !!value
+    this.changeOwner(player)
   }
 
   render (globalContainer, grid) {

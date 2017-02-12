@@ -92,9 +92,11 @@ async function armyMove (id, { from, to, number }) {
     ])).map(JSON.parse)
 
     // hexFrom.owner = player
+    const hexFromArmy = hexFrom.army || 0
+    const hexToArmy = hexTo.army || 0
     hexTo.owner = hexFrom.owner
-    hexTo.army = number > hexFrom.army ? hexFrom.army : number
-    hexFrom.army = number === undefined || number > hexFrom.army ? 0 : hexFrom.army - number
+    hexTo.army = hexToArmy + (number > hexFromArmy ? hexFromArmy : number)
+    hexFrom.army = (number === undefined || number > hexFromArmy) ? 0 : hexFromArmy - number
 
     await Promise.all([
       await client.setAsync(from, JSON.stringify(hexFrom)),
