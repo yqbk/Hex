@@ -92,6 +92,31 @@ class Hex {
     }
   }
 
+  startMovingArmy (from, to, number) {
+    const directions = this.grid[from].neighbours
+
+    for (const move of directions) {
+      // console.log(`${number} - move.x : ${this.grid[move].x}  \nto.y. : ${this.grid[to].x}  \nfrom.x. : ${this.grid[from].x} \n `)
+      // console.log(`diff: ${Math.abs(this.grid[move].x - this.grid[to].x)} --- ${Math.abs(this.grid[to].x - this.grid[from].x)}`)        //
+      // console.log(Math.abs(this.grid[move].x - this.grid[to].x) <= Math.abs(this.grid[to].x - this.grid[from].x))
+
+      // console.log(this.grid[move.id])
+      // console.log(this.grid[to].id)
+
+      if ((Math.abs(this.grid[move.id].x - this.grid[to].x) + (Math.abs(this.grid[move.id].y - this.grid[to].y)))
+        <= (Math.abs(this.grid[to].x - this.grid[from].x) + Math.abs(this.grid[to].y - this.grid[from].y))) {
+
+        setTimeout(() => {
+          armyMove(from, this.grid[move.id].id, number)
+          this.startMovingArmy(this.grid[move.id].id, to, number)
+        }, 1000)
+
+        // console.log(`move from ${from} to ${this.grid[move.id].id}`)
+        break
+      }
+    }
+  }
+
   handleClick () {
     if (!moved) {
       me.register({ hexId: this.id })
@@ -100,8 +125,8 @@ class Hex {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
-        if (this.grid[selectedHex].army && _.find(this.grid[selectedHex].neighbours, { id: this.id })) {
-          armyMove(selectedHex, this.id, 10)
+        if (this.grid[selectedHex].army ) {
+          this.startMovingArmy(selectedHex, this.id, 10)
         }
       }
 
