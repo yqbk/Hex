@@ -74,7 +74,9 @@ export default function init () {
       })
 
       connect()
-        .register('PLAYER_REGISTERED', () => {})
+        .register('PLAYER_REGISTERED', ({ hexId, player }) => {
+          grid[hexId].changeOwner(player)
+        })
         .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue }) => {
           grid[hexId].changeArmyValue(armyValue, player)
         })

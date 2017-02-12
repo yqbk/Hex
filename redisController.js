@@ -60,7 +60,7 @@ async function register (req, res) {
     }
     hex.owner = player
 
-    const randomHexNeighbourId = hex.neighbours[Math.floor(Math.random() * hex.neighbours.length)]
+    const { id: randomHexNeighbourId } = hex.neighbours[Math.floor(Math.random() * hex.neighbours.length)]
     const hexNeighbour = JSON.parse(await client.getAsync(randomHexNeighbourId))
     hexNeighbour.army = 10
     hexNeighbour.owner = player
@@ -70,7 +70,7 @@ async function register (req, res) {
       await client.setAsync(hexId, JSON.stringify(hex))
     ])
 
-    buffer.push({ type: 'PLAYER_REGISTERED', payload: player })
+    buffer.push({ type: 'PLAYER_REGISTERED', payload: { hexId, player } })
     buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { player, hexId: randomHexNeighbourId, armyValue: 10 } })
     res.send(playerId)
   } catch (err) {
