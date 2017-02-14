@@ -7,7 +7,7 @@ import { armyMove } from '../sockets'
 const me = new Player('john')
 
 let moved = false
-let selectedHex
+let selectedHex = null
 
 export function setMoved (m) {
   moved = m
@@ -122,23 +122,22 @@ class Hex {
     if (!moved) {
       me.register({ hexId: this.id })
 
-      if (this.grid[selectedHex]) {
+      if (selectedHex !== null && this.grid[selectedHex]) {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
         if (this.grid[selectedHex].army && _.find(this.grid[selectedHex].neighbours, { id: this.id })) {
           // this.startMovingArmy(selectedHex, this.id, 10)
-          armyMove(selectedHex, this.id, 10)
+          armyMove(selectedHex, this.id)
+          selectedHex = null
         }
       }
 
-      this.hex.tint = 0x99FF99
-
       if (this.army.visible) {
         this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
+        this.hex.tint = 0x99FF99
+        selectedHex = this.id
       }
-
-      selectedHex = this.id
     }
   }
 

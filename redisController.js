@@ -16,6 +16,7 @@ client.on('connect', async () => {
 })
 
 let buffer = []
+const battles = {}
 
 const getBuffer = () => buffer
 const clearBuffer = () => {
@@ -62,7 +63,7 @@ async function register (req, res) {
 
     const { id: randomHexNeighbourId } = hex.neighbours[Math.floor(Math.random() * hex.neighbours.length)]
     const hexNeighbour = JSON.parse(await client.getAsync(randomHexNeighbourId))
-    hexNeighbour.army = 10
+    hexNeighbour.army = 100
     hexNeighbour.owner = player
 
     await Promise.all([
@@ -71,18 +72,91 @@ async function register (req, res) {
     ])
 
     buffer.push({ type: 'PLAYER_REGISTERED', payload: { hexId, player } })
-    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { player, hexId: randomHexNeighbourId, armyValue: 10 } })
+    buffer.push({
+      type: 'CHANGE_HEX_ARMY_VALUE',
+      payload: { player, hexId: randomHexNeighbourId, armyValue: hexNeighbour.army }
+    })
     res.send(playerId)
-  } catch (err) {
-    console.log(err)
-    res.status(500).send(err.message)
+  } catch ({ message }) {
+    res.status(500).send(message)
   }
+}
+
+const sortIds = (id1, id2) => [id1, id2].sort().join('')
+
+function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
+  battles[sortIds(attackerHexId, defenderHexId)] = setTimeout(async () => {
+    try {
+      await client.select(1)
+      const [attackerHex, defenderHex] = (await Promise.all([
+        await client.getAsync(attackerHexId),
+        await client.getAsync(defenderHexId)
+      ])).map(JSON.parse)
+
+      let attackerHexArmy = attackerHex.army || 0
+      let defenderHexArmy = defenderHex.army || 0
+
+      if (attackerHexArmy > 0 && defenderHexArmy > 0) {
+        const attackerDice = Math.floor(Math.random() * (attackerHexArmy > 20 ? 20 : attackerHexArmy)) + 1
+        const defenderDice = Math.floor(Math.random() * (defenderHexArmy > 20 ? 20 : defenderHexArmy)) + 1
+
+        attackerHexArmy -= defenderDice
+        defenderHexArmy -= attackerDice
+
+        if (attackerHexArmy > 0 && defenderHexArmy > 0) {
+          attackerHex.army = attackerHexArmy < 0 ? 0 : attackerHexArmy
+          defenderHex.army = defenderHexArmy < 0 ? 0 : defenderHexArmy
+
+          await Promise.all([
+            await client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
+            await client.setAsync(defenderHexId, JSON.stringify(defenderHex))
+          ])
+
+          buffer.push({
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: attackerHexId, armyValue: attackerHexArmy }
+          })
+          buffer.push({
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: defenderHexId, armyValue: defenderHexArmy }
+          })
+
+          battle({ attackerId, defenderId, attackerHexId, defenderHexId })
+        } else {
+          await client.select(0)
+          const [newOwner, [newAttackerHexArmy, newDefenderHexArmy]] = [
+            JSON.parse(await client.getAsync(attackerHexArmy > defenderHexArmy ? attackerId : defenderId)),
+            attackerHexArmy > defenderHexArmy ? [0, attackerHexArmy] : [0, defenderHexArmy]
+          ]
+
+          await client.select(1)
+          attackerHex.army = newAttackerHexArmy < 0 ? 0 : newAttackerHexArmy
+          defenderHex.army = newDefenderHexArmy < 0 ? 0 : newDefenderHexArmy
+
+          await Promise.all([
+            await client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
+            await client.setAsync(defenderHexId, JSON.stringify(defenderHex))
+          ])
+
+          buffer.push({
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: attackerHexId, armyValue: attackerHex.army }
+          })
+          buffer.push({
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: defenderHexId, armyValue: defenderHex.army, player: newOwner }
+          })
+        }
+      }
+    } catch (err) {
+      console.log(err)
+    }
+  }, 1000)
 }
 
 async function armyMove (id, { from, to, number }) {
   try {
     await client.select(0)
-    const player = await client.getAsync(id)
 
     await client.select(1)
 
@@ -91,22 +165,42 @@ async function armyMove (id, { from, to, number }) {
       await client.getAsync(to)
     ])).map(JSON.parse)
 
-    // hexFrom.owner = player
     const hexFromArmy = hexFrom.army || 0
     const hexToArmy = hexTo.army || 0
-    hexTo.owner = hexFrom.owner
-    hexTo.army = hexToArmy + (number > hexFromArmy ? hexFromArmy : number)
-    hexFrom.army = (number === undefined || number > hexFromArmy) ? 0 : hexFromArmy - number
+    const hexFromOwner = hexFrom.owner
+    const hexToOwner = hexTo.owner
 
-    await Promise.all([
-      await client.setAsync(from, JSON.stringify(hexFrom)),
-      await client.setAsync(to, JSON.stringify(hexTo))
-    ])
+    if (hexFromOwner && hexFromOwner.id === id) {
+      if (!hexToOwner || hexToOwner.id === id) {
+        hexTo.owner = hexFrom.owner
+        const armyToMove = number || hexFromArmy
+        hexTo.army = hexToArmy + (armyToMove > hexFromArmy ? hexFromArmy : armyToMove)
+        hexFrom.army = (armyToMove === undefined || armyToMove > hexFromArmy) ? 0 : hexFromArmy - armyToMove
 
-    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { hexId: from, armyValue: hexFrom.army, player: hexFrom.owner } })
-    buffer.push({ type: 'CHANGE_HEX_ARMY_VALUE', payload: { hexId: to, armyValue: hexTo.army, player: hexFrom.owner } })
-  } catch (err) {
-    console.log(err)
+        await Promise.all([
+          await client.setAsync(from, JSON.stringify(hexFrom)),
+          await client.setAsync(to, JSON.stringify(hexTo))
+        ])
+
+        buffer.push({
+          type: 'CHANGE_HEX_ARMY_VALUE',
+          payload: { hexId: from, armyValue: hexFrom.army, player: hexFrom.owner }
+        })
+        buffer.push({
+          type: 'CHANGE_HEX_ARMY_VALUE',
+          payload: { hexId: to, armyValue: hexTo.army, player: hexFrom.owner }
+        })
+      } else {
+        battle({
+          attackerId: hexFromOwner.id,
+          defenderId: hexToOwner.id,
+          attackerHexId: hexFrom.id,
+          defenderHexId: hexTo.id
+        })
+      }
+    }
+  } catch ({ message }) {
+    console.log(message)
   }
 }
 
