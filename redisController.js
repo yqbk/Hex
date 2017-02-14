@@ -132,6 +132,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
           await client.select(1)
           attackerHex.army = newAttackerHexArmy < 0 ? 0 : newAttackerHexArmy
           defenderHex.army = newDefenderHexArmy < 0 ? 0 : newDefenderHexArmy
+          defenderHex.owner = newOwner
 
           await Promise.all([
             await client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
