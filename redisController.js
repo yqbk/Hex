@@ -5,7 +5,7 @@ const mapFile = require('./static/map.json')
 
 bluebird.promisifyAll(redis.RedisClient.prototype)
 bluebird.promisifyAll(redis.Multi.prototype)
-const client = redis.createClient()
+const client = redis.createClient(process.env.REDIS_URL)
 
 client.on('connect', async () => {
   await client.flushall()
