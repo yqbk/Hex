@@ -18,6 +18,28 @@ const armyTextStyle = new PIXI.TextStyle({
   fontSize: 60
 })
 
+function flatten (items) {
+  const flat = []
+
+  items.forEach((item) => {
+    if (Array.isArray(item)) {
+      flat.push(...flatten(item))
+    } else {
+      flat.push(item)
+    }
+  })
+
+  return flat
+}
+
+function onlyUnique (value, index, self) {
+  return self.indexOf(value) === index
+}
+
+function sizeObj (obj) {
+  return Object.keys(obj).length
+}
+
 class Hex {
   constructor ({ id, x, y, type = 'grass', neighbours, owner, army, castle }) {
     this.handleClick = this.handleClick.bind(this)
@@ -53,6 +75,10 @@ class Hex {
     this.initializeItem(this.army, this.hex.x, this.hex.y, 0.5)
     this.container.addChild(this.army)
     this.army.visible = !!army
+
+    this.number = new PIXI.Text(this.id)
+    this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
+    this.container.addChild(this.number)
   }
 
   initializeItem (item, x, y, scale) {
@@ -93,29 +119,31 @@ class Hex {
     }
   }
 
-  startMovingArmy (from, to, number) {
-    const directions = this.grid[from].neighbours
+  definePath (from, to) {
+    const list = this.grid[from].neighbours
+    const directions = []
+    list.forEach((el) => { directions.push(el.id) })
+
+    if (directions.includes(this.grid[to].id)) {
+      return [this.grid[to].id]
+    }
+
+    const path = []
 
     for (const move of directions) {
-      // console.log(`${number} - move.x : ${this.grid[move].x}  \nto.y. : ${this.grid[to].x}  \nfrom.x. : ${this.grid[from].x} \n `)
-      // console.log(`diff: ${Math.abs(this.grid[move].x - this.grid[to].x)} --- ${Math.abs(this.grid[to].x - this.grid[from].x)}`)        //
-      // console.log(Math.abs(this.grid[move].x - this.grid[to].x) <= Math.abs(this.grid[to].x - this.grid[from].x))
+      const newDistance = Math.abs(this.grid[move].x - this.grid[to].x)
+        + Math.abs(this.grid[move].y - this.grid[to].y)
+      const oldDistance = Math.abs(this.grid[to].x - this.grid[from].x)
+        + Math.abs(this.grid[to].y - this.grid[from].y)
 
-      // console.log(this.grid[move.id])
-      // console.log(this.grid[to].id)
-
-      if ((Math.abs(this.grid[move.id].x - this.grid[to].x) + (Math.abs(this.grid[move.id].y - this.grid[to].y)))
-        <= (Math.abs(this.grid[to].x - this.grid[from].x) + Math.abs(this.grid[to].y - this.grid[from].y))) {
-
-        setTimeout(() => {
-          armyMove(from, this.grid[move.id].id, number)
-          this.startMovingArmy(this.grid[move.id].id, to, number)
-        }, 1000)
-
-        // console.log(`move from ${from} to ${this.grid[move.id].id}`)
-        break
+      if (newDistance < oldDistance) {
+        const result = this.definePath(move, to)
+        path.push([move, ...result])
       }
     }
+    path.sort((a, b) => sizeObj(a) - sizeObj(b))
+
+    return path.shift()
   }
 
   handleClick () {
@@ -126,10 +154,11 @@ class Hex {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
-        if (this.grid[selectedHex].army && _.find(this.grid[selectedHex].neighbours, { id: this.id })) {
-          // this.startMovingArmy(selectedHex, this.id, 10)
-          armyMove(selectedHex, this.id)
-          console.log(selectedHex, this.id)
+
+        // && _.find(this.grid[selectedHex].neighbours, { id: this.id })
+        if (this.grid[selectedHex].army) {
+          console.log(this.definePath(selectedHex, this.id, 10))
+          // armyMove(selectedHex, this.id)
           selectedHex = null
         }
       }
