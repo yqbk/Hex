@@ -16,4 +16,5 @@ const map = _.range(0, mapWidth * mapHeight)
     castle: castles.includes(id)
   }))
 
+
 fs.writeFile('static/map.json', JSON.stringify(map, null, 2))
