@@ -11,6 +11,7 @@ class Player {
       register({ name: this.name, hexId })
         .then((result) => {
           if (result) {
+            this.id = sessionStorage.getItem('id') // eslint-disable-line
             this.registered = true
           }
         })

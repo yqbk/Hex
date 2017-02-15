@@ -1,4 +1,5 @@
-const ws = new WebSocket('ws://localhost:5000', 'echo-protocol') // eslint-disable-line
+const protocol = (window.location.protocol === 'https:') ? 'wss:' : 'ws:'
+const ws = new WebSocket(`${protocol}//${location.host}`, 'echo-protocol') // eslint-disable-line
 
 ws.onopen = () => {}
 ws.onclose = () => {}
@@ -24,7 +25,5 @@ function createRequest (type, payload) {
 }
 
 export function armyMove (from, to, number) {
-
-
   ws.send(createRequest('ARMY_MOVE', { from, to, number }))
 }

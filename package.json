@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --watch",
-    "start:b": "nodemon --harmony-async-await index.js",
+    "start:b": "nodemon --exec babel-node -- index.js",
     "start": "babel-node index.js",
     "map": "node mapGenerator.js"
   },
@@ -47,9 +47,7 @@
     "webpack": "^1.13.2",
     "webpack-dev-middleware": "^1.10.0",
     "webpack-hot-middleware": "^2.16.1",
-    "ws": "^2.0.2"
-  },
-  "devDependencies": {
+    "ws": "^2.0.2",
     "babel-core": "^6.14.0",
     "babel-jest": "^18.0.0",
     "babel-loader": "^6.2.5",
