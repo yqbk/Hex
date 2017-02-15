@@ -12,10 +12,15 @@
     "indent": 0,
     "react/jsx-indent": 0,
     "linebreak-style": 0,
-    "max-len": 0,
+    "max-len": ["error", 120],
     "jsx-a11y/no-marquee": 0,
     "no-console": 0,
     "no-param-reassign": 0
   },
-  "parser": "babel-eslint"
+  "parser": "babel-eslint",
+  "env": {
+    "browser": true,
+    "node": true,
+    "jest": true
+  }
 }

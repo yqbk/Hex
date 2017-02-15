@@ -129,11 +129,12 @@ class Hex {
         if (this.grid[selectedHex].army && _.find(this.grid[selectedHex].neighbours, { id: this.id })) {
           // this.startMovingArmy(selectedHex, this.id, 10)
           armyMove(selectedHex, this.id)
+          console.log(selectedHex, this.id)
           selectedHex = null
         }
       }
 
-      if (this.army.visible) {
+      if (this.army.visible && this.owner && me.id === this.owner.id) {
         this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
         this.hex.tint = 0x99FF99
         selectedHex = this.id

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --watch",
-    "start:b": "nodemon --harmony-async-await index.js",
+    "start:b": "nodemon --exec babel-node -- index.js",
     "start": "babel-node index.js",
     "map": "node mapGenerator.js"
   },
