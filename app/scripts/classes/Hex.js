@@ -18,24 +18,6 @@ const armyTextStyle = new PIXI.TextStyle({
   fontSize: 60
 })
 
-function flatten (items) {
-  const flat = []
-
-  items.forEach((item) => {
-    if (Array.isArray(item)) {
-      flat.push(...flatten(item))
-    } else {
-      flat.push(item)
-    }
-  })
-
-  return flat
-}
-
-function onlyUnique (value, index, self) {
-  return self.indexOf(value) === index
-}
-
 function sizeObj (obj) {
   return Object.keys(obj).length
 }
@@ -150,10 +132,32 @@ class Hex {
     return path.shift()
   }
 
+  drawPath () {
+    // todo need to bring path to the top!!!
+    if (this.pathLine !== 0) {
+      console.log('--- DELETE pathLine')
+      this.pathLine.destroy()
+    }
+
+    console.log(' create pathline')
+    this.pathLine = new PIXI.Graphics().lineStyle(5, 0xf3a33f)
+
+    this.pathLine.moveTo(this.grid[this.path[0]].x, this.grid[this.path[0]].y)
+    // this.path.shift()
+
+    this.path.forEach((el) => {
+      this.pathLine.lineTo(this.grid[el].x, this.grid[el].y)
+      // this.pathLine.bezierCurveTo(this.grid[el].x, this.grid[el].y)
+    })
+
+    this.container.addChild(this.pathLine)
+  }
+
   followPath () {
     // todo logic should be moved to server side?
     if (this.path.length > 1) {
-      setTimeout( () => {
+      setTimeout(() => {
+        this.drawPath()
         armyMove(this.path.shift(), this.path[0])
         this.followPath()
       }, 500)
@@ -173,7 +177,6 @@ class Hex {
         if (this.grid[selectedHex].army) {
           this.path = this.definePath(selectedHex, this.id)
           this.path.unshift(selectedHex)
-          // this.drawPath()
           this.followPath()
           // armyMove(selectedHex, this.id)
           selectedHex = null
