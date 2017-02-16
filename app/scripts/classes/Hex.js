@@ -76,6 +76,9 @@ class Hex {
     this.container.addChild(this.army)
     this.army.visible = !!army
 
+    this.path = []
+    this.pathLine = 0
+
     this.number = new PIXI.Text(this.id)
     this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
     this.container.addChild(this.number)
@@ -120,6 +123,7 @@ class Hex {
   }
 
   definePath (from, to) {
+    // todo to rebuild later to improve performance (odległość punktu od prostej wyznaczonej przez punkty from, to)
     const list = this.grid[from].neighbours
     const directions = []
     list.forEach((el) => { directions.push(el.id) })
@@ -146,6 +150,16 @@ class Hex {
     return path.shift()
   }
 
+  followPath () {
+    // todo logic should be moved to server side?
+    if (this.path.length > 1) {
+      setTimeout( () => {
+        armyMove(this.path.shift(), this.path[0])
+        this.followPath()
+      }, 500)
+    }
+  }
+
   handleClick () {
     if (!moved) {
       me.register({ hexId: this.id })
@@ -157,7 +171,10 @@ class Hex {
 
         // && _.find(this.grid[selectedHex].neighbours, { id: this.id })
         if (this.grid[selectedHex].army) {
-          console.log(this.definePath(selectedHex, this.id, 10))
+          this.path = this.definePath(selectedHex, this.id)
+          this.path.unshift(selectedHex)
+          // this.drawPath()
+          this.followPath()
           // armyMove(selectedHex, this.id)
           selectedHex = null
         }
