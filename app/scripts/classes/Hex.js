@@ -65,6 +65,7 @@ class Hex {
       this.armyIcon.tint = `#${owner.color}`
     }
     this.initializeItem(this.armyIcon, this.hex.x, this.hex.y - 10, ((army || 0) / 100) * 0.1)
+    this.container.addChild(this.armyIcon)
 
     // this.path = []
     // this.pathLine = 0
