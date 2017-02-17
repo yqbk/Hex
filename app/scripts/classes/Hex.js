@@ -3,6 +3,7 @@ import * as PIXI from 'pixi.js'
 
 import Player from './Player'
 import { armyMove } from '../sockets'
+import { armyPatrol } from '../sockets'
 
 const me = new Player('john')
 
@@ -80,6 +81,7 @@ class Hex {
     item.buttonMode = true
     item.anchor.set(0.5)
     item.click = this.handleClick
+    item.on()
     item.contain = item
     item.scale.set(scale)
     item.x = x
@@ -177,16 +179,27 @@ class Hex {
     if (!moved) {
       me.register({ hexId: this.id })
 
+      let patrol
+
+      document.onkeydown = (e) => {
+        e = e || window.event
+
+        if (e.keyCode === 17) {
+          patrol = true
+        }
+      }
+
       if (selectedHex !== null && this.grid[selectedHex]) {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
-        // && _.find(this.grid[selectedHex].neighbours, { id: this.id })
         if (this.grid[selectedHex].armyNumber) {
-          // this.path = this.definePath(selectedHex, this.id)
-          // this.path.unshift(selectedHex)
-          // this.followPath()
-          armyMove(selectedHex, this.id)
+          if (patrol === true) {
+            armyPatrol(this.id, selectedHex)
+          } else {
+            armyMove(selectedHex, this.id)
+          }
+
           selectedHex = null
         }
       }

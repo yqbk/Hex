@@ -47,17 +47,33 @@ async function getMap (req, res) {
   }
 }
 
-async function register (req, res) {
+// async function generateArmy (player, hex) {
+//   lock('armyAccess', async (done) => {
+//     hex.army += hex.army <= 90 ? 10 : 100 - hex.army
+//
+//     buffer.push({
+//       type: 'CHANGE_HEX_ARMY_VALUE',
+//       payload: { player, hexId: hex.id, armyValue: hex.army }
+//     })
+//     // res.send(playerId)
+//
+//     done()
+//   })
+// }
+
+async function generateArmy (req, res) {
+  let player = null
+  let hex = null
   lock('armyAccess', async (done) => {
     const { name, hexId } = req.query
     const playerId = uuid.v4()
-    const player = { id: playerId, name, color: randomColor() }
+    player = { id: playerId, name, color: randomColor() }
     try {
       await client.select(0)
       await client.setAsync(playerId, JSON.stringify(player))
 
       await client.select(1)
-      const hex = JSON.parse(await client.getAsync(hexId))
+      hex = JSON.parse(await client.getAsync(hexId))
       if (!hex.castle) {
         throw new Error('You need to choose a castle')
       }
@@ -65,7 +81,7 @@ async function register (req, res) {
         throw new Error('This field is already taken')
       }
       hex.owner = player
-      hex.army = 100
+      hex.army += hex.army <= 90 ? 10 : 100 - hex.army
 
       await Promise.all([
         client.setAsync(hexId, JSON.stringify(hex))
@@ -82,6 +98,48 @@ async function register (req, res) {
     }
     done()
   })
+}
+
+async function register (req, res) {
+  let player = null
+  let hex = null
+  lock('armyAccess', async (done) => {
+    const { name, hexId } = req.query
+    const playerId = uuid.v4()
+    player = { id: playerId, name, color: randomColor() }
+    try {
+      await client.select(0)
+      await client.setAsync(playerId, JSON.stringify(player))
+
+      await client.select(1)
+      hex = JSON.parse(await client.getAsync(hexId))
+      if (!hex.castle) {
+        throw new Error('You need to choose a castle')
+      }
+      if (hex.owner) {
+        throw new Error('This field is already taken')
+      }
+      hex.owner = player
+      hex.army = 50
+
+      await Promise.all([
+        client.setAsync(hexId, JSON.stringify(hex))
+      ])
+
+      buffer.push({ type: 'PLAYER_REGISTERED', payload: { hexId, player } })
+      buffer.push({
+        type: 'CHANGE_HEX_ARMY_VALUE',
+        payload: { player, hexId: hex.id, armyValue: hex.army }
+      })
+      res.send(playerId)
+    } catch ({ message }) {
+      res.status(500).send(message)
+    }
+    done()
+  })
+  setTimeout(() => {
+    generateArmy(req, res)
+  }, 1000)
 }
 
 const sortIds = (id1, id2) => [id1, id2].sort().join('')
@@ -237,10 +295,18 @@ async function armyMove (id, { from, to, number }) {
   })
 }
 
+async function armyPatrol (id, { from, to, number }) {
+  console.log('--- go ---')
+  await Promise.all(armyMove(id, { from, to, number }))
+  console.log('--- return ---')
+  await Promise.all(armyMove(id, { to, from, number }))
+}
+
 module.exports = {
   getBuffer,
   clearBuffer,
   getMap,
   register,
-  armyMove
+  armyMove,
+  armyPatrol
 }

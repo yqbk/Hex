@@ -64,8 +64,8 @@ function connect () {
 }
 
 connect()
+  .register('ARMY_PATROL', redisController.armyPatrol)
   .register('ARMY_MOVE', redisController.armyMove)
-
 
 setInterval(() => {
   if (redisController.getBuffer().length > 0) {
