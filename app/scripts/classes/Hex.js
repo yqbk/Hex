@@ -15,7 +15,8 @@ export function setMoved (m) {
 
 const armyTextStyle = new PIXI.TextStyle({
   fontFamily: 'Arial',
-  fontSize: 60
+  fontSize: 40,
+  stroke: 'white'
 })
 
 function sizeObj (obj) {
@@ -53,10 +54,10 @@ class Hex {
       this.container.addChild(this.castle)
     }
 
-    this.army = new PIXI.Text(army || 0, armyTextStyle)
-    this.initializeItem(this.army, this.hex.x, this.hex.y, 0.5)
-    this.container.addChild(this.army)
-    this.army.visible = !!army
+    this.armyNumber = new PIXI.Text(army || 0, armyTextStyle)
+    this.initializeItem(this.armyNumber, this.hex.x, this.hex.y + 20, 0.5)
+    this.armyNumber.visible = !!army
+    this.container.addChild(this.armyNumber)
 
     this.path = []
     this.pathLine = 0
@@ -135,11 +136,9 @@ class Hex {
   drawPath () {
     // todo need to bring path to the top!!!
     if (this.pathLine !== 0) {
-      console.log('--- DELETE pathLine')
       this.pathLine.destroy()
     }
 
-    console.log(' create pathline')
     this.pathLine = new PIXI.Graphics().lineStyle(5, 0xf3a33f)
 
     this.pathLine.moveTo(this.grid[this.path[0]].x, this.grid[this.path[0]].y)
@@ -158,7 +157,9 @@ class Hex {
     if (this.path.length > 1) {
       setTimeout(() => {
         this.drawPath()
-        armyMove(this.path.shift(), this.path[0])
+        const from = this.path.shift()
+        armyMove(from, this.path[0])
+        this.grid[from].army.destroy()
         this.followPath()
       }, 500)
     }
@@ -174,16 +175,16 @@ class Hex {
 
 
         // && _.find(this.grid[selectedHex].neighbours, { id: this.id })
-        if (this.grid[selectedHex].army) {
+        if (this.grid[selectedHex].armyNumber) {
           this.path = this.definePath(selectedHex, this.id)
           this.path.unshift(selectedHex)
           this.followPath()
-          // armyMove(selectedHex, this.id)
+          // armyNumberMove(selectedHex, this.id)
           selectedHex = null
         }
       }
 
-      if (this.army.visible && this.owner && me.id === this.owner.id) {
+      if (this.armyNumber.visible && this.owner && me.id === this.owner.id) {
         this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
         this.hex.tint = 0x99FF99
         selectedHex = this.id
@@ -203,8 +204,25 @@ class Hex {
   }
 
   changeArmyValue (value, player) {
-    this.army.text = value
-    this.army.visible = !!value
+    this.armyNumber.text = value
+
+    if (this.armyNumber.text > 0) {
+      this.army = new PIXI.Sprite(PIXI.Texture.fromImage('images/army.png'))
+      if (this.armyNumber.text < 25) {
+        this.initializeItem(this.army, this.hex.x, this.hex.y - 10, 0.025)
+      } else if (this.armyNumber.text >= 25 && this.armyNumber.text < 75) {
+        this.initializeItem(this.army, this.hex.x, this.hex.y - 10, 0.05)
+      } else if (this.armyNumber.text >= 75) {
+        this.initializeItem(this.army, this.hex.x, this.hex.y - 10, 0.1)
+      }
+
+      //todo tint doesn't work for our svg?
+      this.army.tint = `0x${player.color}`
+
+      this.container.addChild(this.army)
+    }
+
+    this.armyNumber.visible = !!value
     this.changeOwner(player)
   }
 
