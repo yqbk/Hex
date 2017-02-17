@@ -32,6 +32,7 @@ const randomColor = () => {
 // redis databases
 // 0 - user
 // 1 - hex
+// 2 - path
 
 async function getMap (req, res) {
   try {
@@ -151,7 +152,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
         })
       }
     } catch (err) {
-      console.log(err)
+      console.error(err)
     }
     done()
   })
@@ -160,19 +161,48 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
 const getDistance = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => Math.sqrt(((x2 - x1) ** 2) + ((y2 - y1) ** 2))
 
 async function getNextHex ({ hexFrom, hexTo }) {
-  await client.select(1)
-  return (await Promise.all(hexFrom.neighbours.map(({ id }) => client.getAsync(id))))
-    .map(JSON.parse)
-    .reduce((acc, n) => {
-      const newDistance = getDistance(n, hexTo)
-      return {
-        ...(
-          newDistance <= acc.minDistance
-            ? { minDistance: newDistance, hex: n }
-            : acc
-        )
-      }
-    }, { minDistance: getDistance(hexFrom, hexTo) }).hex
+  try {
+    await client.select(1)
+    return (await Promise.all(hexFrom.neighbours.map(({ id }) => client.getAsync(id))))
+      .map(JSON.parse)
+      .reduce((acc, n) => {
+        const newDistance = getDistance(n, hexTo)
+        return {
+          ...(
+            newDistance <= acc.minDistance
+              ? { minDistance: newDistance, hex: n }
+              : acc
+          )
+        }
+      }, { minDistance: getDistance(hexFrom, hexTo) }).hex
+  } catch (err) {
+    console.error(err)
+  }
+  return {}
+}
+
+async function calculatePath (id, { from, to }, beginning) {
+  try {
+    await client.select(1)
+
+    const [hexFrom, hexTo] = (await Promise.all([
+      client.getAsync(from),
+      client.getAsync(to)
+    ])).map(JSON.parse)
+
+    const nextMove = await getNextHex({ hexFrom, hexTo })
+
+    const pathId = `${id}${beginning}${to}`
+    await client.rpushAsync([pathId, nextMove.id])
+    await client.lrangeAsync(pathId, 0, -1)
+    if (nextMove.id !== hexTo.id) {
+      setTimeout(() => calculatePath(id, { from: nextMove.id, to }, beginning), 100)
+    } else {
+      await client.del(pathId)
+    }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 async function armyMove (id, { from, to, number }) {
@@ -229,7 +259,7 @@ async function armyMove (id, { from, to, number }) {
         }
       }
     } catch (err) {
-      console.log(err)
+      console.error(err)
     }
     done()
   })
@@ -240,5 +270,6 @@ module.exports = {
   clearBuffer,
   getMap,
   register,
-  armyMove
+  armyMove,
+  calculatePath
 }

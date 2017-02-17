@@ -64,7 +64,10 @@ function connect () {
 }
 
 connect()
-  .register('ARMY_MOVE', redisController.armyMove)
+  .register('ARMY_MOVE', (id, { from, to, number }) => {
+    redisController.armyMove(id, { from, to, number }, from)
+    redisController.calculatePath(id, { from, to }, from)
+  })
 
 
 setInterval(() => {

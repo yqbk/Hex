@@ -117,7 +117,6 @@ class Hex {
   }
 
   // definePath (from, to) {
-  //   // todo to rebuild later to improve performance (odległość punktu od prostej wyznaczonej przez punkty from, to)
   //   const list = this.grid[from].neighbours
   //   const directions = []
   //   list.forEach((el) => { directions.push(el.id) })
@@ -145,7 +144,6 @@ class Hex {
   // }
 
   // drawPath () {
-  //   // todo need to bring path to the top!!!
   //   if (this.pathLine !== 0) {
   //     console.log('--- DELETE pathLine')
   //     this.pathLine.destroy()
@@ -166,7 +164,6 @@ class Hex {
   // }
 
   // followPath () {
-  //   // todo logic should be moved to server side?
   //   if (this.path.length > 1) {
   //     setTimeout(() => {
   //       this.drawPath()
