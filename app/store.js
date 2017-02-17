@@ -10,4 +10,4 @@ const logger = createLogger({
   timestamp: false
 })
 
-export default createStore(reducer, applyMiddleware(thunk, logger))
+export default createStore(reducer, applyMiddleware(thunk))

@@ -9,20 +9,12 @@ import Hex, { setMoved } from './classes/Hex'
 let app
 let container
 
-const mapWidth = 15
-const mapHeight = 15
-
 let dragging = false
 
-function createMap (width, height, x) {
-  return getMap()
-    .then(({ data }) => data.map(({ id, ...rest }) => new Hex({
-      id,
-      x: ((id % mapWidth) * x) + ((id % (2 * mapWidth)) >= mapWidth ? x / 2 : 0) + 600,
-      y: ((x - 10) * Math.floor(id / mapWidth)) + 200,
-      ...rest
-    })))
-}
+const createMap = () => getMap().then(({ data }) => Object.keys(data).reduce((acc, key) => ({
+  ...acc,
+  [key]: new Hex(data[key])
+}), {}))
 
 export default function init () {
   const map = document.getElementById('map') // eslint-disable-line
@@ -67,10 +59,10 @@ export default function init () {
 
   app.stage.addChild(container)
 
-  createMap(mapWidth, mapHeight, 85)
+  createMap()
     .then((grid) => {
-      grid.forEach((el) => {
-        el.render(container, grid)
+      Object.keys(grid).forEach((key) => {
+        grid[key].render(container, grid)
       })
 
       connect()
