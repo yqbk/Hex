@@ -9,6 +9,7 @@ const me = new Player('john')
 
 let moved = false
 let selectedHex = null
+let hoveredHex = null
 
 export function setMoved (m) {
   moved = m
@@ -27,6 +28,7 @@ const armyTextStyle = new PIXI.TextStyle({
 class Hex {
   constructor ({ id, x, y, type = 'grass', neighbours, owner, army, castle }) {
     this.handleClick = this.handleClick.bind(this)
+    this.handleMouseOver = this.handleMouseOver.bind(this)
 
     this.container = new PIXI.Container()
 
@@ -81,7 +83,7 @@ class Hex {
     item.buttonMode = true
     item.anchor.set(0.5)
     item.click = this.handleClick
-    item.on()
+    item.mouseover = this.handleMouseOver
     item.contain = item
     item.scale.set(scale)
     item.x = x
@@ -116,7 +118,6 @@ class Hex {
   }
 
   // definePath (from, to) {
-  //   // todo to rebuild later to improve performance (odległość punktu od prostej wyznaczonej przez punkty from, to)
   //   const list = this.grid[from].neighbours
   //   const directions = []
   //   list.forEach((el) => { directions.push(el.id) })
@@ -144,7 +145,6 @@ class Hex {
   // }
 
   // drawPath () {
-  //   // todo need to bring path to the top!!!
   //   if (this.pathLine !== 0) {
   //     console.log('--- DELETE pathLine')
   //     this.pathLine.destroy()
@@ -165,7 +165,6 @@ class Hex {
   // }
 
   // followPath () {
-  //   // todo logic should be moved to server side?
   //   if (this.path.length > 1) {
   //     setTimeout(() => {
   //       this.drawPath()
@@ -193,6 +192,7 @@ class Hex {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
+        // && _.find(this.grid[selectedHex].neighbours, { id: this.id })
         if (this.grid[selectedHex].armyNumber) {
           if (patrol === true) {
             armyPatrol(this.id, selectedHex)
@@ -201,6 +201,8 @@ class Hex {
           }
 
           selectedHex = null
+          this.grid[hoveredHex].hex.tint = 0xFFFFFF
+          hoveredHex = null
         }
       }
 
@@ -209,6 +211,17 @@ class Hex {
         this.hex.tint = 0x99FF99
         selectedHex = this.id
       }
+    }
+  }
+
+  handleMouseOver () {
+    if (selectedHex) {
+      if (hoveredHex) {
+        this.grid[hoveredHex].hex.tint = 0xFFFFFF
+      }
+      this.hex.tint = 0x99FF99
+      this.grid[selectedHex].hex.tint = 0x99FF99
+      hoveredHex = this.id
     }
   }
 
