@@ -65,21 +65,16 @@ async function register (req, res) {
         throw new Error('This field is already taken')
       }
       hex.owner = player
-
-      const { id: randomHexNeighbourId } = hex.neighbours[Math.floor(Math.random() * hex.neighbours.length)]
-      const hexNeighbour = JSON.parse(await client.getAsync(randomHexNeighbourId))
-      hexNeighbour.army = 100
-      hexNeighbour.owner = player
+      hex.army = 100
 
       await Promise.all([
-        client.setAsync(randomHexNeighbourId, JSON.stringify(hexNeighbour)),
         client.setAsync(hexId, JSON.stringify(hex))
       ])
 
       buffer.push({ type: 'PLAYER_REGISTERED', payload: { hexId, player } })
       buffer.push({
         type: 'CHANGE_HEX_ARMY_VALUE',
-        payload: { player, hexId: randomHexNeighbourId, armyValue: hexNeighbour.army }
+        payload: { player, hexId: hex.id, armyValue: hex.army }
       })
       res.send(playerId)
     } catch ({ message }) {
