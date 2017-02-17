@@ -53,7 +53,7 @@ class Hex {
       this.container.addChild(this.castle)
     }
 
-    this.army = new PIXI.Text(army || 0, armyTextStyle)
+    this.army = new PIXI.Text(army || 0, { ...armyTextStyle, fill: owner ? `#${owner.color}` : '#000000' })
     this.initializeItem(this.army, this.hex.x, this.hex.y, 0.5)
     this.container.addChild(this.army)
     this.army.visible = !!army
@@ -193,6 +193,7 @@ class Hex {
   changeOwner (owner) {
     if (owner) {
       this.owner = owner
+      this.army.style.fill = `#${owner.color}`
     }
     this.reinitializeBordersWithNeighbours()
   }
