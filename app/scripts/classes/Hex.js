@@ -54,10 +54,17 @@ class Hex {
       this.container.addChild(this.castle)
     }
 
-    this.army = new PIXI.Text(army || 0, { ...armyTextStyle, fill: owner ? `#${owner.color}` : '#000000' })
-    this.initializeItem(this.army, this.hex.x, this.hex.y + 20, 0.5)
-    this.army.visible = !!army
-    this.container.addChild(this.army)
+    this.armyNumber = new PIXI.Text(army || 0, { ...armyTextStyle, fill: owner ? `#${owner.color}` : '#000000' })
+    this.initializeItem(this.armyNumber, this.hex.x, this.hex.y + 20, 0.5)
+    this.armyNumber.visible = !!army
+    this.container.addChild(this.armyNumber)
+
+    this.armyIcon = new PIXI.Sprite(PIXI.Texture.fromImage('images/army.png'))
+    this.armyIcon.visible = !!army
+    if (owner) {
+      this.armyIcon.tint = `#${owner.color}`
+    }
+    this.initializeItem(this.armyIcon, this.hex.x, this.hex.y - 10, ((army || 0) / 100) * 0.1)
 
     // this.path = []
     // this.pathLine = 0
@@ -174,7 +181,7 @@ class Hex {
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
         // && _.find(this.grid[selectedHex].neighbours, { id: this.id })
-        if (this.grid[selectedHex].army) {
+        if (this.grid[selectedHex].armyNumber) {
           // this.path = this.definePath(selectedHex, this.id)
           // this.path.unshift(selectedHex)
           // this.followPath()
@@ -183,7 +190,7 @@ class Hex {
         }
       }
 
-      if (this.army.visible && this.owner && me.id === this.owner.id) {
+      if (this.armyNumber.visible && this.owner && me.id === this.owner.id) {
         // this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
         this.hex.tint = 0x99FF99
         selectedHex = this.id
@@ -194,7 +201,8 @@ class Hex {
   changeOwner (owner) {
     if (owner) {
       this.owner = owner
-      this.army.style.fill = `#${owner.color}`
+      this.armyNumber.style.fill = `#${owner.color}`
+      this.armyIcon.tint = `#${owner.color}`
     }
     this.reinitializeBordersWithNeighbours()
   }
@@ -205,24 +213,9 @@ class Hex {
 
   changeArmyValue (value, player) {
     this.armyNumber.text = value
-
-    if (this.armyNumber.text > 0) {
-      this.army = new PIXI.Sprite(PIXI.Texture.fromImage('images/army.png'))
-      if (this.armyNumber.text < 25) {
-        this.initializeItem(this.army, this.hex.x, this.hex.y - 10, 0.025)
-      } else if (this.armyNumber.text >= 25 && this.armyNumber.text < 75) {
-        this.initializeItem(this.army, this.hex.x, this.hex.y - 10, 0.05)
-      } else if (this.armyNumber.text >= 75) {
-        this.initializeItem(this.army, this.hex.x, this.hex.y - 10, 0.1)
-      }
-
-      //todo tint doesn't work for our svg?
-      this.army.tint = `0x${player.color}`
-
-      this.container.addChild(this.army)
-    }
-
     this.armyNumber.visible = !!value
+    this.armyIcon.scale.set(((value || 0) / 100) * 0.1)
+    this.armyIcon.visible = true
     this.changeOwner(player)
   }
 
