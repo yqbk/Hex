@@ -18,9 +18,9 @@ const armyTextStyle = new PIXI.TextStyle({
   fontSize: 60
 })
 
-function sizeObj (obj) {
-  return Object.keys(obj).length
-}
+// function sizeObj (obj) {
+//   return Object.keys(obj).length
+// }
 
 class Hex {
   constructor ({ id, x, y, type = 'grass', neighbours, owner, army, castle }) {
@@ -58,8 +58,8 @@ class Hex {
     this.container.addChild(this.army)
     this.army.visible = !!army
 
-    this.path = []
-    this.pathLine = 0
+    // this.path = []
+    // this.pathLine = 0
 
     this.number = new PIXI.Text(this.id)
     this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
@@ -104,65 +104,65 @@ class Hex {
     }
   }
 
-  definePath (from, to) {
-    // todo to rebuild later to improve performance (odległość punktu od prostej wyznaczonej przez punkty from, to)
-    const list = this.grid[from].neighbours
-    const directions = []
-    list.forEach((el) => { directions.push(el.id) })
+  // definePath (from, to) {
+  //   // todo to rebuild later to improve performance (odległość punktu od prostej wyznaczonej przez punkty from, to)
+  //   const list = this.grid[from].neighbours
+  //   const directions = []
+  //   list.forEach((el) => { directions.push(el.id) })
+  //
+  //   if (directions.includes(this.grid[to].id)) {
+  //     return [this.grid[to].id]
+  //   }
+  //
+  //   const path = []
+  //
+  //   for (const move of directions) {
+  //     const newDistance = Math.abs(this.grid[move].x - this.grid[to].x)
+  //       + Math.abs(this.grid[move].y - this.grid[to].y)
+  //     const oldDistance = Math.abs(this.grid[to].x - this.grid[from].x)
+  //       + Math.abs(this.grid[to].y - this.grid[from].y)
+  //
+  //     if (newDistance < oldDistance) {
+  //       const result = this.definePath(move, to)
+  //       path.push([move, ...result])
+  //     }
+  //   }
+  //   path.sort((a, b) => sizeObj(a) - sizeObj(b))
+  //
+  //   return path.shift()
+  // }
 
-    if (directions.includes(this.grid[to].id)) {
-      return [this.grid[to].id]
-    }
+  // drawPath () {
+  //   // todo need to bring path to the top!!!
+  //   if (this.pathLine !== 0) {
+  //     console.log('--- DELETE pathLine')
+  //     this.pathLine.destroy()
+  //   }
+  //
+  //   console.log(' create pathline')
+  //   this.pathLine = new PIXI.Graphics().lineStyle(5, 0xf3a33f)
+  //
+  //   this.pathLine.moveTo(this.grid[this.path[0]].x, this.grid[this.path[0]].y)
+  //   // this.path.shift()
+  //
+  //   this.path.forEach((el) => {
+  //     this.pathLine.lineTo(this.grid[el].x, this.grid[el].y)
+  //     // this.pathLine.bezierCurveTo(this.grid[el].x, this.grid[el].y)
+  //   })
+  //
+  //   this.container.addChild(this.pathLine)
+  // }
 
-    const path = []
-
-    for (const move of directions) {
-      const newDistance = Math.abs(this.grid[move].x - this.grid[to].x)
-        + Math.abs(this.grid[move].y - this.grid[to].y)
-      const oldDistance = Math.abs(this.grid[to].x - this.grid[from].x)
-        + Math.abs(this.grid[to].y - this.grid[from].y)
-
-      if (newDistance < oldDistance) {
-        const result = this.definePath(move, to)
-        path.push([move, ...result])
-      }
-    }
-    path.sort((a, b) => sizeObj(a) - sizeObj(b))
-
-    return path.shift()
-  }
-
-  drawPath () {
-    // todo need to bring path to the top!!!
-    if (this.pathLine !== 0) {
-      console.log('--- DELETE pathLine')
-      this.pathLine.destroy()
-    }
-
-    console.log(' create pathline')
-    this.pathLine = new PIXI.Graphics().lineStyle(5, 0xf3a33f)
-
-    this.pathLine.moveTo(this.grid[this.path[0]].x, this.grid[this.path[0]].y)
-    // this.path.shift()
-
-    this.path.forEach((el) => {
-      this.pathLine.lineTo(this.grid[el].x, this.grid[el].y)
-      // this.pathLine.bezierCurveTo(this.grid[el].x, this.grid[el].y)
-    })
-
-    this.container.addChild(this.pathLine)
-  }
-
-  followPath () {
-    // todo logic should be moved to server side?
-    if (this.path.length > 1) {
-      setTimeout(() => {
-        this.drawPath()
-        armyMove(this.path.shift(), this.path[0])
-        this.followPath()
-      }, 500)
-    }
-  }
+  // followPath () {
+  //   // todo logic should be moved to server side?
+  //   if (this.path.length > 1) {
+  //     setTimeout(() => {
+  //       this.drawPath()
+  //       armyMove(this.path.shift(), this.path[0])
+  //       this.followPath()
+  //     }, 500)
+  //   }
+  // }
 
   handleClick () {
     if (!moved) {
@@ -172,19 +172,18 @@ class Hex {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
-
         // && _.find(this.grid[selectedHex].neighbours, { id: this.id })
         if (this.grid[selectedHex].army) {
-          this.path = this.definePath(selectedHex, this.id)
-          this.path.unshift(selectedHex)
-          this.followPath()
-          // armyMove(selectedHex, this.id)
+          // this.path = this.definePath(selectedHex, this.id)
+          // this.path.unshift(selectedHex)
+          // this.followPath()
+          armyMove(selectedHex, this.id)
           selectedHex = null
         }
       }
 
       if (this.army.visible && this.owner && me.id === this.owner.id) {
-        this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
+        // this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
         this.hex.tint = 0x99FF99
         selectedHex = this.id
       }
