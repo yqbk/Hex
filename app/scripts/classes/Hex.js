@@ -8,6 +8,7 @@ const me = new Player('john')
 
 let moved = false
 let selectedHex = null
+let hoveredHex = null
 
 export function setMoved (m) {
   moved = m
@@ -26,6 +27,7 @@ const armyTextStyle = new PIXI.TextStyle({
 class Hex {
   constructor ({ id, x, y, type = 'grass', neighbours, owner, army, castle }) {
     this.handleClick = this.handleClick.bind(this)
+    this.handleMouseOver = this.handleMouseOver.bind(this)
 
     this.container = new PIXI.Container()
 
@@ -80,6 +82,7 @@ class Hex {
     item.buttonMode = true
     item.anchor.set(0.5)
     item.click = this.handleClick
+    item.mouseover = this.handleMouseOver
     item.contain = item
     item.scale.set(scale)
     item.x = x
@@ -188,6 +191,8 @@ class Hex {
           // this.followPath()
           armyMove(selectedHex, this.id)
           selectedHex = null
+          this.grid[hoveredHex].hex.tint = 0xFFFFFF
+          hoveredHex = null
         }
       }
 
@@ -196,6 +201,17 @@ class Hex {
         this.hex.tint = 0x99FF99
         selectedHex = this.id
       }
+    }
+  }
+
+  handleMouseOver () {
+    if (selectedHex) {
+      if (hoveredHex) {
+        this.grid[hoveredHex].hex.tint = 0xFFFFFF
+      }
+      this.hex.tint = 0x99FF99
+      this.grid[selectedHex].hex.tint = 0x99FF99
+      hoveredHex = this.id
     }
   }
 

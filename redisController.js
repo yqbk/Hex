@@ -67,9 +67,7 @@ async function register (req, res) {
       hex.owner = player
       hex.army = 100
 
-      await Promise.all([
-        client.setAsync(hexId, JSON.stringify(hex))
-      ])
+      await client.setAsync(hexId, JSON.stringify(hex))
 
       buffer.push({ type: 'PLAYER_REGISTERED', payload: { hexId, player } })
       buffer.push({
