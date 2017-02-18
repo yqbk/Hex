@@ -64,11 +64,10 @@ function connect () {
 }
 
 connect()
-  .register('ARMY_MOVE', (id, { from, to, number }) => {
-    redisController.armyMove(id, { from, to, number }, from)
+  .register('ARMY_MOVE', (id, { from, to, number, patrol }) => {
+    redisController.armyMove(id, { from, to, number, patrol }, from)
     redisController.calculatePath(id, { from, to }, from)
   })
-  .register('ARMY_PATROL', redisController.armyPatrol)
 
 setInterval(() => {
   if (redisController.getBuffer().length > 0) {

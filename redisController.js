@@ -31,8 +31,7 @@ const randomColor = () => {
 
 // redis databases
 // 0 - user
-// 1 - hex
-// 2 - path
+// 1 - hex, path
 
 async function getMap (req, res) {
   try {
@@ -48,72 +47,40 @@ async function getMap (req, res) {
   }
 }
 
-// async function generateArmy (player, hex) {
-//   lock('armyAccess', async (done) => {
-//     hex.army += hex.army <= 90 ? 10 : 100 - hex.army
-//
-//     buffer.push({
-//       type: 'CHANGE_HEX_ARMY_VALUE',
-//       payload: { player, hexId: hex.id, armyValue: hex.army }
-//     })
-//     // res.send(playerId)
-//
-//     done()
-//   })
-// }
-
-async function generateArmy (req, res) {
-  let player = null
-  let hex = null
+async function spawnArmy (hexId) {
   lock('armyAccess', async (done) => {
-    const { name, hexId } = req.query
-    const playerId = uuid.v4()
-    player = { id: playerId, name, color: randomColor() }
     try {
-      await client.select(0)
-      await client.setAsync(playerId, JSON.stringify(player))
-
       await client.select(1)
-      hex = JSON.parse(await client.getAsync(hexId))
-      if (!hex.castle) {
-        throw new Error('You need to choose a castle')
-      }
-      if (hex.owner) {
-        throw new Error('This field is already taken')
-      }
-      hex.owner = player
-      hex.army += hex.army <= 90 ? 10 : 100 - hex.army
-
-      await Promise.all([
-        client.setAsync(hexId, JSON.stringify(hex))
-      ])
-
-      buffer.push({ type: 'PLAYER_REGISTERED', payload: { hexId, player } })
+      const hex = JSON.parse(await client.getAsync(hexId))
+      const hexArmy = hex.army || 0
+      hex.army = hexArmy + 20
+      await client.setAsync(hexId, JSON.stringify(hex))
       buffer.push({
         type: 'CHANGE_HEX_ARMY_VALUE',
-        payload: { player, hexId: hex.id, armyValue: hex.army }
+        payload: { hexId, armyValue: hex.army }
       })
-      res.send(playerId)
-    } catch ({ message }) {
-      res.status(500).send(message)
+
+      setTimeout(() => {
+        spawnArmy(hexId)
+      }, 3000)
+    } catch (err) {
+      console.error(err)
     }
     done()
   })
 }
 
 async function register (req, res) {
-  let player = null
-  let hex = null
   lock('armyAccess', async (done) => {
     const { name, hexId } = req.query
     const playerId = uuid.v4()
-    player = { id: playerId, name, color: randomColor() }
+    const player = { id: playerId, name, color: randomColor() }
     try {
       await client.select(0)
       await client.setAsync(playerId, JSON.stringify(player))
 
       await client.select(1)
-      hex = JSON.parse(await client.getAsync(hexId))
+      const hex = JSON.parse(await client.getAsync(hexId))
       if (!hex.castle) {
         throw new Error('You need to choose a castle')
       }
@@ -121,24 +88,19 @@ async function register (req, res) {
         throw new Error('This field is already taken')
       }
       hex.owner = player
-      hex.army = 100
 
       await client.setAsync(hexId, JSON.stringify(hex))
 
       buffer.push({ type: 'PLAYER_REGISTERED', payload: { hexId, player } })
-      buffer.push({
-        type: 'CHANGE_HEX_ARMY_VALUE',
-        payload: { player, hexId: hex.id, armyValue: hex.army }
-      })
+
+      spawnArmy(hexId)
+
       res.send(playerId)
     } catch ({ message }) {
       res.status(500).send(message)
     }
     done()
   })
-  setTimeout(() => {
-    generateArmy(req, res)
-  }, 1000)
 }
 
 const sortIds = (id1, id2) => [id1, id2].sort().join('')
@@ -263,7 +225,7 @@ async function calculatePath (id, { from, to }, beginning) {
   }
 }
 
-async function armyMove (id, { from, to, number }) {
+async function armyMove (id, { from, to, number, patrol }, beginning) {
   lock('armyAccess', async (done) => {
     try {
       await client.select(1)
@@ -283,6 +245,10 @@ async function armyMove (id, { from, to, number }) {
         const nextHexOwner = nextHex.owner
 
         if (!nextHexOwner || nextHexOwner.id === id || (nextHexOwner && !nextHexArmy)) {
+          if (nextHex.castle && !nextHex.owner) {
+            spawnArmy(nextHex.id)
+          }
+
           nextHex.owner = hexFrom.owner
           const armyToMove = number || hexFromArmy
           nextHex.army = nextHexArmy + (armyToMove > hexFromArmy ? hexFromArmy : armyToMove)
@@ -304,8 +270,12 @@ async function armyMove (id, { from, to, number }) {
 
           if (nextHex.id !== hexTo.id) {
             setTimeout(() => {
-              armyMove(id, { from: nextHex.id, to: hexTo.id, number })
-            }, 500)
+              armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol }, beginning)
+            }, 1000)
+          } else if (patrol) {
+            setTimeout(() => {
+              armyMove(id, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol }, nextHex.id)
+            }, 1000)
           }
         } else {
           battle({
@@ -323,19 +293,11 @@ async function armyMove (id, { from, to, number }) {
   })
 }
 
-async function armyPatrol (id, { from, to, number }) {
-  console.log('--- go ---')
-  await Promise.all(armyMove(id, { from, to, number }))
-  console.log('--- return ---')
-  await Promise.all(armyMove(id, { to, from, number }))
-}
-
 module.exports = {
   getBuffer,
   clearBuffer,
   getMap,
   register,
   armyMove,
-  armyPatrol,
   calculatePath
 }

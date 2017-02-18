@@ -24,10 +24,6 @@ function createRequest (type, payload) {
   return JSON.stringify({ id: sessionStorage.getItem('id'), type, payload }) // eslint-disable-line
 }
 
-export function armyMove (from, to, number) {
-  ws.send(createRequest('ARMY_MOVE', { from, to, number }))
-}
-
-export function armyPatrol (from, to, number) {
-  ws.send(createRequest('ARMY_PATROL', { from, to, number }))
+export function armyMove (patrol, from, to, number) {
+  ws.send(createRequest('ARMY_MOVE', { from, to, number, patrol }))
 }

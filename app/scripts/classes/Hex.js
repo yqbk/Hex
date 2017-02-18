@@ -3,13 +3,14 @@ import * as PIXI from 'pixi.js'
 
 import Player from './Player'
 import { armyMove } from '../sockets'
-import { armyPatrol } from '../sockets'
 
 const me = new Player('john')
 
 let moved = false
 let selectedHex = null
 let hoveredHex = null
+
+let ctrlPressed = false
 
 export function setMoved (m) {
   moved = m
@@ -21,9 +22,22 @@ const armyTextStyle = new PIXI.TextStyle({
   stroke: 'white'
 })
 
-// function sizeObj (obj) {
-//   return Object.keys(obj).length
-// }
+const getArmyIconScale = (armyValue) => {
+  const scale = (((armyValue || 0) / 100) * 0.05) + 0.05
+  return scale > 0.1 ? 0.1 : scale
+}
+
+window.addEventListener('keydown', ({ keyCode }) => {
+  if (keyCode === 80) {
+    ctrlPressed = true
+  }
+})
+
+window.addEventListener('keyup', ({ keyCode }) => {
+  if (keyCode === 80) {
+    ctrlPressed = false
+  }
+})
 
 class Hex {
   constructor ({ id, x, y, type = 'grass', neighbours, owner, army, castle }) {
@@ -65,13 +79,10 @@ class Hex {
     this.armyIcon = new PIXI.Sprite(PIXI.Texture.fromImage('images/army.png'))
     this.armyIcon.visible = !!army
     if (owner) {
-      this.armyIcon.tint = `#${owner.color}`
+      this.armyIcon.tint = `0x${owner.color}`
     }
-    this.initializeItem(this.armyIcon, this.hex.x, this.hex.y - 10, ((army || 0) / 100) * 0.1)
+    this.initializeItem(this.armyIcon, this.hex.x, this.hex.y - 10, getArmyIconScale(army))
     this.container.addChild(this.armyIcon)
-
-    // this.path = []
-    // this.pathLine = 0
 
     // this.number = new PIXI.Text(this.id)
     // this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
@@ -117,97 +128,25 @@ class Hex {
     }
   }
 
-  // definePath (from, to) {
-  //   const list = this.grid[from].neighbours
-  //   const directions = []
-  //   list.forEach((el) => { directions.push(el.id) })
-  //
-  //   if (directions.includes(this.grid[to].id)) {
-  //     return [this.grid[to].id]
-  //   }
-  //
-  //   const path = []
-  //
-  //   for (const move of directions) {
-  //     const newDistance = Math.abs(this.grid[move].x - this.grid[to].x)
-  //       + Math.abs(this.grid[move].y - this.grid[to].y)
-  //     const oldDistance = Math.abs(this.grid[to].x - this.grid[from].x)
-  //       + Math.abs(this.grid[to].y - this.grid[from].y)
-  //
-  //     if (newDistance < oldDistance) {
-  //       const result = this.definePath(move, to)
-  //       path.push([move, ...result])
-  //     }
-  //   }
-  //   path.sort((a, b) => sizeObj(a) - sizeObj(b))
-  //
-  //   return path.shift()
-  // }
-
-  // drawPath () {
-  //   if (this.pathLine !== 0) {
-  //     console.log('--- DELETE pathLine')
-  //     this.pathLine.destroy()
-  //   }
-  //
-  //   console.log(' create pathline')
-  //   this.pathLine = new PIXI.Graphics().lineStyle(5, 0xf3a33f)
-  //
-  //   this.pathLine.moveTo(this.grid[this.path[0]].x, this.grid[this.path[0]].y)
-  //   // this.path.shift()
-  //
-  //   this.path.forEach((el) => {
-  //     this.pathLine.lineTo(this.grid[el].x, this.grid[el].y)
-  //     // this.pathLine.bezierCurveTo(this.grid[el].x, this.grid[el].y)
-  //   })
-  //
-  //   this.container.addChild(this.pathLine)
-  // }
-
-  // followPath () {
-  //   if (this.path.length > 1) {
-  //     setTimeout(() => {
-  //       this.drawPath()
-  //       armyMove(this.path.shift(), this.path[0])
-  //       this.followPath()
-  //     }, 500)
-  //   }
-  // }
-
   handleClick () {
     if (!moved) {
+      let armyMoved = false
       me.register({ hexId: this.id })
-
-      let patrol
-
-      document.onkeydown = (e) => {
-        e = e || window.event
-
-        if (e.keyCode === 17) {
-          patrol = true
-        }
-      }
 
       if (selectedHex !== null && this.grid[selectedHex]) {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
 
-        // && _.find(this.grid[selectedHex].neighbours, { id: this.id })
-        if (this.grid[selectedHex].armyNumber) {
-          if (patrol === true) {
-            armyPatrol(this.id, selectedHex)
-          } else {
-            armyMove(selectedHex, this.id)
-          }
-
+        if (this.grid[selectedHex].armyNumber && selectedHex !== this.id) {
+          armyMove(ctrlPressed, selectedHex, this.id)
+          armyMoved = true
           selectedHex = null
           this.grid[hoveredHex].hex.tint = 0xFFFFFF
           hoveredHex = null
         }
       }
 
-      if (this.armyNumber.visible && this.owner && me.id === this.owner.id) {
-        // this.neighbours.forEach(this.changeHexTint.bind(this, 0xCCFFCC))
+      if (this.armyNumber.visible && this.owner && me.id === this.owner.id && !armyMoved) {
         this.hex.tint = 0x99FF99
         selectedHex = this.id
       }
@@ -229,7 +168,7 @@ class Hex {
     if (owner) {
       this.owner = owner
       this.armyNumber.style.fill = `#${owner.color}`
-      this.armyIcon.tint = `#${owner.color}`
+      this.armyIcon.tint = `0x${owner.color}`
     }
     this.reinitializeBordersWithNeighbours()
   }
@@ -241,8 +180,8 @@ class Hex {
   changeArmyValue (value, player) {
     this.armyNumber.text = value
     this.armyNumber.visible = !!value
-    this.armyIcon.scale.set(((value || 0) / 100) * 0.1)
-    this.armyIcon.visible = true
+    this.armyIcon.scale.set(getArmyIconScale(value))
+    this.armyIcon.visible = !!value
     this.changeOwner(player)
   }
 
