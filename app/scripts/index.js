@@ -1,4 +1,3 @@
-// import _ from 'lodash'
 import * as PIXI from 'pixi.js'
 
 import connect from './sockets'
@@ -17,15 +16,15 @@ const createMap = () => getMap().then(({ data }) => Object.keys(data).reduce((ac
 }), {}))
 
 export default function init () {
-  const map = document.getElementById('map') // eslint-disable-line
-  const WIDTH = window.innerWidth // eslint-disable-line
-  const HEIGHT = window.innerHeight // eslint-disable-line
+  const map = document.getElementById('map')
+  const WIDTH = window.innerWidth
+  const HEIGHT = window.innerHeight
 
   app = new PIXI.Application(WIDTH, HEIGHT, {
     transparent: true,
     antialias: true,
     autoResize: true,
-    resolution: window.devicePixelRatio || 1 // eslint-disable-line
+    resolution: window.devicePixelRatio || 1
   })
   map.appendChild(app.view)
 
@@ -69,8 +68,8 @@ export default function init () {
         .register('PLAYER_REGISTERED', ({ hexId, player }) => {
           grid[hexId].changeOwner(player)
         })
-        .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue }) => {
-          grid[hexId].changeArmyValue(armyValue, player)
+        .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId }) => {
+          grid[hexId].changeArmyValue(armyValue, { player, moveId })
         })
     })
 }

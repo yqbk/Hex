@@ -18,6 +18,7 @@ client.on('connect', async () => {
 
 let buffer = []
 const battles = {}
+const moves = {}
 
 const getBuffer = () => buffer
 const clearBuffer = () => {
@@ -225,6 +226,17 @@ async function calculatePath (id, { from, to }, beginning) {
   }
 }
 
+async function stopMove (id, { hexId }) {
+  try {
+    await client.select(1)
+    const hex = JSON.parse(await client.getAsync(hexId))
+    clearTimeout(moves[hex.moveId])
+    delete moves[hex.moveId]
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 async function armyMove (id, { from, to, number, patrol }, beginning) {
   lock('armyAccess', async (done) => {
     try {
@@ -254,6 +266,23 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
           nextHex.army = nextHexArmy + (armyToMove > hexFromArmy ? hexFromArmy : armyToMove)
           hexFrom.army = (armyToMove === undefined || armyToMove > hexFromArmy) ? 0 : hexFromArmy - armyToMove
 
+          const timeoutId = (
+            (nextHex.id !== hexTo.id && setTimeout(() => {
+              armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol }, beginning)
+            }, 1000)) ||
+            (nextHex.id === hexTo.id && patrol && setTimeout(() => {
+              armyMove(id, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol }, nextHex.id)
+            }, 1000))
+          )
+
+          const moveId = uuid.v1()
+          moves[moveId] = timeoutId
+          if (hexFrom.moveId) {
+            delete moves[hexFrom.moveId]
+          }
+
+          nextHex.moveId = moveId
+
           await Promise.all([
             client.setAsync(from, JSON.stringify(hexFrom)),
             client.setAsync(nextHex.id, JSON.stringify(nextHex))
@@ -265,18 +294,8 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
           })
           buffer.push({
             type: 'CHANGE_HEX_ARMY_VALUE',
-            payload: { hexId: nextHex.id, armyValue: nextHex.army, player: nextHex.owner }
+            payload: { hexId: nextHex.id, armyValue: nextHex.army, player: nextHex.owner, moveId }
           })
-
-          if (nextHex.id !== hexTo.id) {
-            setTimeout(() => {
-              armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol }, beginning)
-            }, 1000)
-          } else if (patrol) {
-            setTimeout(() => {
-              armyMove(id, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol }, nextHex.id)
-            }, 1000)
-          }
         } else {
           battle({
             attackerId: hexFromOwner.id,
@@ -299,5 +318,6 @@ module.exports = {
   getMap,
   register,
   armyMove,
-  calculatePath
+  calculatePath,
+  stopMove
 }

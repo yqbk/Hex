@@ -68,6 +68,9 @@ connect()
     redisController.armyMove(id, { from, to, number, patrol }, from)
     redisController.calculatePath(id, { from, to }, from)
   })
+  .register('STOP_MOVE', (id, { hexId }) => {
+    redisController.stopMove(id, { hexId })
+  })
 
 setInterval(() => {
   if (redisController.getBuffer().length > 0) {

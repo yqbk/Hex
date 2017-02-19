@@ -27,3 +27,7 @@ function createRequest (type, payload) {
 export function armyMove (patrol, from, to, number) {
   ws.send(createRequest('ARMY_MOVE', { from, to, number, patrol }))
 }
+
+export function stopMove (hexId) {
+  ws.send(createRequest('STOP_MOVE', { hexId }))
+}

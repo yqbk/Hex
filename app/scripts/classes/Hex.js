@@ -2,7 +2,7 @@ import _ from 'lodash'
 import * as PIXI from 'pixi.js'
 
 import Player from './Player'
-import { armyMove } from '../sockets'
+import { armyMove, stopMove } from '../sockets'
 
 const me = new Player('john')
 
@@ -133,6 +133,10 @@ class Hex {
       let armyMoved = false
       me.register({ hexId: this.id })
 
+      if (this.armyNumber.visible && this.moveId) {
+        stopMove(this.id)
+      }
+
       if (selectedHex !== null && this.grid[selectedHex]) {
         this.changeHexTint(0xFFFFFF, { id: selectedHex })
         this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
@@ -177,7 +181,10 @@ class Hex {
     this.grid[id].hex.tint = color
   }
 
-  changeArmyValue (value, player) {
+  changeArmyValue (value, { player, moveId }) {
+    if (moveId) {
+      this.moveId = moveId
+    }
     this.armyNumber.text = value
     this.armyNumber.visible = !!value
     this.armyIcon.scale.set(getArmyIconScale(value))
