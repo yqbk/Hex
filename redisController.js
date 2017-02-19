@@ -17,7 +17,6 @@ client.on('connect', async () => {
 })
 
 let buffer = []
-const battles = {}
 const moves = {}
 
 const getBuffer = () => buffer
@@ -32,7 +31,7 @@ const randomColor = () => {
 
 // redis databases
 // 0 - user
-// 1 - hex, path
+// 1 - hex
 
 async function getMap (req, res) {
   try {
@@ -54,7 +53,7 @@ async function spawnArmy (hexId) {
       await client.select(1)
       const hex = JSON.parse(await client.getAsync(hexId))
       const hexArmy = hex.army || 0
-      hex.army = hexArmy + 20
+      hex.army = hexArmy + 10
       await client.setAsync(hexId, JSON.stringify(hex))
       buffer.push({
         type: 'CHANGE_HEX_ARMY_VALUE',
@@ -63,7 +62,7 @@ async function spawnArmy (hexId) {
 
       setTimeout(() => {
         spawnArmy(hexId)
-      }, 3000)
+      }, 5000)
     } catch (err) {
       console.error(err)
     }
@@ -98,13 +97,29 @@ async function register (req, res) {
 
       res.send(playerId)
     } catch ({ message }) {
-      res.status(500).send(message)
+      res.status(400).send(message)
     }
     done()
   })
 }
 
-const sortIds = (id1, id2) => [id1, id2].sort().join('')
+async function getDestination (req, res) {
+  try {
+    const { id, moveId } = req.query
+    if (moves[moveId]) {
+      const { playerId, destination } = moves[moveId]
+      if (id === playerId) {
+        res.json(destination)
+      } else {
+        res.status(401).send('Unauthoried')
+      }
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+// const sortIds = (id1, id2) => [id1, id2].sort().join('')
 
 function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
   lock('armyAccess', async (done) => {
@@ -144,8 +159,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
           payload: { hexId: defenderHexId, armyValue: defenderHexArmy }
         })
 
-        battles[sortIds(attackerHexId, defenderHexId)] = setTimeout(() =>
-          battle({ attackerId, defenderId, attackerHexId, defenderHexId }), 1000)
+        setTimeout(() => battle({ attackerId, defenderId, attackerHexId, defenderHexId }), 1000)
       } else {
         await client.select(0)
         const [newOwner, [newAttackerHexArmy, newDefenderHexArmy]] = [
@@ -170,6 +184,11 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
         buffer.push({
           type: 'CHANGE_HEX_ARMY_VALUE',
           payload: { hexId: defenderHexId, armyValue: defenderHex.army, player: newOwner }
+        })
+
+        buffer.push({
+          type: 'SET_BATTLE',
+          payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
         })
       }
     } catch (err) {
@@ -230,8 +249,10 @@ async function stopMove (id, { hexId }) {
   try {
     await client.select(1)
     const hex = JSON.parse(await client.getAsync(hexId))
-    clearTimeout(moves[hex.moveId])
-    delete moves[hex.moveId]
+    if (hex.owner && hex.owner.id === id) {
+      clearTimeout((moves[hex.moveId] || {}).timeoutId)
+      delete moves[hex.moveId]
+    }
   } catch (err) {
     console.error(err)
   }
@@ -250,9 +271,9 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
       const hexFromOwner = hexFrom.owner
       const hexFromArmy = hexFrom.army || 0
 
-      if (hexFromOwner && hexFromOwner.id === id && hexFromArmy) {
-        const nextHex = await getNextHex({ hexFrom, hexTo })
+      const nextHex = await getNextHex({ hexFrom, hexTo })
 
+      if (hexFromOwner && hexFromOwner.id === id && hexFromArmy && nextHex.type !== 'water') {
         const nextHexArmy = nextHex.army || 0
         const nextHexOwner = nextHex.owner
 
@@ -272,11 +293,14 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
             }, 1000)) ||
             (nextHex.id === hexTo.id && patrol && setTimeout(() => {
               armyMove(id, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol }, nextHex.id)
-            }, 1000))
+            }, 1000)) || null
           )
 
           const moveId = uuid.v1()
-          moves[moveId] = timeoutId
+          if (timeoutId) {
+            moves[moveId] = { timeoutId, playerId: id, destination: patrol ? [beginning, to] : [to] }
+          }
+
           if (hexFrom.moveId) {
             delete moves[hexFrom.moveId]
           }
@@ -294,15 +318,23 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
           })
           buffer.push({
             type: 'CHANGE_HEX_ARMY_VALUE',
-            payload: { hexId: nextHex.id, armyValue: nextHex.army, player: nextHex.owner, moveId }
+            payload: Object.assign(
+              {},
+              { hexId: nextHex.id, armyValue: nextHex.army, player: nextHex.owner },
+              timeoutId ? { moveId } : { moveId: null }
+            )
           })
         } else {
+          stopMove(nextHexOwner.id, { hexId: nextHex.id })
+
           battle({
             attackerId: hexFromOwner.id,
             defenderId: nextHexOwner.id,
             attackerHexId: hexFrom.id,
             defenderHexId: nextHex.id
           })
+
+          buffer.push({ type: 'SET_BATTLE', payload: { attackerId: hexFrom.id, defenderId: nextHex.id, state: true } })
         }
       }
     } catch (err) {
@@ -313,6 +345,7 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
 }
 
 module.exports = {
+  getDestination,
   getBuffer,
   clearBuffer,
   getMap,

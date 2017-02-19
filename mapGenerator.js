@@ -7,7 +7,7 @@ const mapWidth = 15
 const mapHeight = 15
 const size = 85
 
-const castles = [20, 65, 200]
+const castles = [20, 76, 200, 57, 177, 13]
 
 const map = _.range(0, mapWidth * mapHeight)
   .map(id => ({

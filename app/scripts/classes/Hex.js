@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import PIXIDisplay from 'pixi-display' // eslint-disable-line
 import * as PIXI from 'pixi.js'
 
 import Player from './Player'
@@ -11,6 +12,13 @@ let selectedHex = null
 let hoveredHex = null
 
 let ctrlPressed = false
+
+const displayGroupsList = ['hexex', 'borders', 'battleIcons', 'castles', 'armyNumbers', 'armyIcons']
+const displayGroups = displayGroupsList.reduce((acc, curr, index) => ({
+  ...acc,
+  [curr]: new PIXI.DisplayGroup(index)
+}), {})
+
 
 export function setMoved (m) {
   moved = m
@@ -43,6 +51,7 @@ class Hex {
   constructor ({ id, x, y, type = 'grass', neighbours, owner, army, castle }) {
     this.handleClick = this.handleClick.bind(this)
     this.handleMouseOver = this.handleMouseOver.bind(this)
+    this.handleMouseLeave = this.handleMouseLeave.bind(this)
 
     this.container = new PIXI.Container()
 
@@ -54,25 +63,37 @@ class Hex {
     this.owner = owner
 
     this.hex = new PIXI.Sprite(PIXI.Texture.fromImage(`images/${type}.png`))
-    this.initializeItem(this.hex, this.x, this.y, 0.5)
+    this.initializeItem(this.hex, this.x, this.y, 0.5, 'hexes')
     this.container.addChild(this.hex)
 
     this.borders = _.range(0, 6).map((index) => {
       const border = new PIXI.Sprite(PIXI.Texture.fromImage('images/border.png'))
-      this.initializeItem(border, this.x, this.y, 0.5)
+      this.initializeItem(border, this.x, this.y, 0.5, 'borders')
       border.rotation = index * (Math.PI / 3)
       this.container.addChild(border)
       return border
     })
 
+    this.battleIcons = _.range(0, 6).map((index) => {
+      const battleIcon = new PIXI.Sprite(PIXI.Texture.fromImage('images/battle.png'))
+      const [inX, inY] = [this.x - 20, this.y - 38]
+      const angle = index * (Math.PI / 3)
+      const battleIconX = (((inX - this.x) * Math.cos(angle)) - ((inY - this.y) * Math.sin(angle))) + this.x
+      const battleIconY = (((inX - this.x) * Math.sin(angle)) + ((inY - this.y) * Math.cos(angle))) + this.y
+      this.initializeItem(battleIcon, battleIconX, battleIconY, 0.3, 'battleIcons')
+      battleIcon.visible = false
+      this.container.addChild(battleIcon)
+      return battleIcon
+    })
+
     if (castle) {
       this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
-      this.initializeItem(this.castle, this.hex.x, this.hex.y, 0.1)
+      this.initializeItem(this.castle, this.hex.x, this.hex.y, 0.1, 'castles')
       this.container.addChild(this.castle)
     }
 
     this.armyNumber = new PIXI.Text(army || 0, { ...armyTextStyle, fill: owner ? `#${owner.color}` : '#000000' })
-    this.initializeItem(this.armyNumber, this.hex.x, this.hex.y + 20, 0.5)
+    this.initializeItem(this.armyNumber, this.hex.x, this.hex.y + 20, 0.5, 'armyNumbers')
     this.armyNumber.visible = !!army
     this.container.addChild(this.armyNumber)
 
@@ -81,24 +102,26 @@ class Hex {
     if (owner) {
       this.armyIcon.tint = `0x${owner.color}`
     }
-    this.initializeItem(this.armyIcon, this.hex.x, this.hex.y - 10, getArmyIconScale(army))
+    this.initializeItem(this.armyIcon, this.hex.x, this.hex.y - 10, getArmyIconScale(army), 'armyIcons')
     this.container.addChild(this.armyIcon)
 
-    // this.number = new PIXI.Text(this.id)
-    // this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
-    // this.container.addChild(this.number)
+    this.number = new PIXI.Text(this.id)
+    this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
+    this.container.addChild(this.number)
   }
 
-  initializeItem (item, x, y, scale) {
+  initializeItem (item, x, y, scale, displayGroup) {
     item.interactive = true
     item.buttonMode = true
     item.anchor.set(0.5)
     item.click = this.handleClick
     item.mouseover = this.handleMouseOver
+    item.mouseout = this.handleMouseLeave
     item.contain = item
     item.scale.set(scale)
     item.x = x
     item.y = y
+    item.displayGroup = displayGroups[displayGroup]
   }
 
   reinitializeBordersWithNeighbours () {
@@ -159,12 +182,14 @@ class Hex {
 
   handleMouseOver () {
     if (selectedHex) {
-      if (hoveredHex) {
-        this.grid[hoveredHex].hex.tint = 0xFFFFFF
-      }
       this.hex.tint = 0x99FF99
-      this.grid[selectedHex].hex.tint = 0x99FF99
       hoveredHex = this.id
+    }
+  }
+
+  handleMouseLeave () {
+    if (selectedHex && this.id !== selectedHex) {
+      this.hex.tint = 0xFFFFFF
     }
   }
 
@@ -182,7 +207,7 @@ class Hex {
   }
 
   changeArmyValue (value, { player, moveId }) {
-    if (moveId) {
+    if (moveId !== null) {
       this.moveId = moveId
     }
     this.armyNumber.text = value
@@ -190,6 +215,11 @@ class Hex {
     this.armyIcon.scale.set(getArmyIconScale(value))
     this.armyIcon.visible = !!value
     this.changeOwner(player)
+  }
+
+  setBattle (defenderId, state) {
+    const { index } = _.find(this.neighbours, { id: defenderId }) || {}
+    this.battleIcons[index].visible = state
   }
 
   render (globalContainer, grid) {

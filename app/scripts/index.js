@@ -56,6 +56,8 @@ export default function init () {
   //   container.scale.y = counter
   // })
 
+  app.stage.displayList = new PIXI.DisplayList()
+
   app.stage.addChild(container)
 
   createMap()
@@ -70,6 +72,9 @@ export default function init () {
         })
         .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId }) => {
           grid[hexId].changeArmyValue(armyValue, { player, moveId })
+        })
+        .register('SET_BATTLE', ({ attackerId, defenderId, state }) => {
+          grid[attackerId].setBattle(defenderId, state)
         })
     })
 }
