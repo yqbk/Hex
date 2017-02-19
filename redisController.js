@@ -54,7 +54,7 @@ async function spawnArmy (hexId) {
       await client.select(1)
       const hex = JSON.parse(await client.getAsync(hexId))
       const hexArmy = hex.army || 0
-      hex.army = hexArmy + 20
+      hex.army = hexArmy + 10 <= 100 ? hexArmy + 10 : 100
       await client.setAsync(hexId, JSON.stringify(hex))
       buffer.push({
         type: 'CHANGE_HEX_ARMY_VALUE',
