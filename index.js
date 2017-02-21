@@ -12,8 +12,7 @@ const compiler = webpack(config)
 const app = express()
 const server = http.createServer(app)
 
-app.get('/register', redisController.register)
-app.get('/destination', redisController.getDestination)
+// app.get('/register', redisController.register)
 app.get('/map', redisController.getMap)
 
 app.use(history({
@@ -48,7 +47,7 @@ function connect () {
 
     socket.on('message', (message) => {
       const { id, type, payload } = JSON.parse(message)
-      callbacks[type](id, payload)
+      callbacks[type](id, payload, socket)
     })
 
     socket.on('close', () => {
@@ -65,12 +64,18 @@ function connect () {
 }
 
 connect()
+  .register('REGISTER', (id, { name, hexId }, socket) => {
+    redisController.register(id, { name, hexId }, socket)
+  })
   .register('ARMY_MOVE', (id, { from, to, number, patrol }) => {
     redisController.armyMove(id, { from, to, number, patrol }, from)
     // redisController.calculatePath(id, { from, to }, from)
   })
   .register('STOP_MOVE', (id, { hexId }) => {
     redisController.stopMove(id, { hexId })
+  })
+  .register('GET_DESTINATION', (id, { moveId }, socket) => {
+    redisController.getDestination(id, { moveId }, socket)
   })
 
 setInterval(() => {

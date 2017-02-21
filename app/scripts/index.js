@@ -2,8 +2,10 @@ import * as PIXI from 'pixi.js'
 
 import connect from './sockets'
 import { getMap } from '../api'
+import store from '../store'
+import { addToQueue } from '../actions'
 
-import Hex, { setMoved } from './classes/Hex'
+import Hex, { setMoved, me } from './classes/Hex'
 
 let app
 let container
@@ -67,6 +69,14 @@ export default function init () {
       })
 
       connect()
+        .register('REGISTER', ({ playerId }) => {
+          sessionStorage.setItem('id', playerId)
+          me.id = playerId
+          me.registered = true
+        })
+        .register('ERROR_MESSAGE', ({ message }) => {
+          store.dispatch(addToQueue(message))
+        })
         .register('PLAYER_REGISTERED', ({ hexId, player }) => {
           grid[hexId].changeOwner(player)
         })
@@ -75,6 +85,12 @@ export default function init () {
         })
         .register('SET_BATTLE', ({ attackerId, defenderId, state }) => {
           grid[attackerId].setBattle(defenderId, state)
+        })
+        .register('GET_DESTINATION', ({ hexId, destination }) => {
+          grid[hexId].destination = destination
+          destination.forEach((id) => {
+            grid[id].hex.tint = 0x99CCFF
+          })
         })
     })
 }

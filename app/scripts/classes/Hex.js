@@ -3,9 +3,9 @@ import PIXIDisplay from 'pixi-display' // eslint-disable-line
 import * as PIXI from 'pixi.js'
 
 import Player from './Player'
-import { armyMove, stopMove } from '../sockets'
+import { armyMove, stopMove, getDestination } from '../sockets'
 
-const me = new Player('john')
+export const me = new Player('john')
 
 let moved = false
 let selectedHex = null
@@ -157,7 +157,7 @@ class Hex {
   handleClick () {
     if (!moved) {
       let armyMoved = false
-      me.register({ hexId: this.id })
+      me.register(this.id)
 
       if (this.armyNumber.visible && this.moveId) {
         stopMove(this.id)
@@ -184,9 +184,21 @@ class Hex {
   }
 
   handleMouseOver () {
+    hoveredHex = this.id
     if (selectedHex) {
       this.hex.tint = 0x99FF99
-      hoveredHex = this.id
+    }
+    if (this.moveId) {
+      getDestination(this.moveId)
+    }
+  }
+
+  clearDestinations () {
+    if (this.destination && this.destination.length) {
+      this.destination.forEach((id) => {
+        this.grid[id].hex.tint = 0xFFFFFF
+      })
+      this.destination = []
     }
   }
 
@@ -194,6 +206,7 @@ class Hex {
     if (selectedHex && this.id !== selectedHex) {
       this.hex.tint = 0xFFFFFF
     }
+    this.clearDestinations()
   }
 
   changeOwner (owner) {
@@ -218,6 +231,9 @@ class Hex {
     this.armyIcon.scale.set(getArmyIconScale(value))
     this.armyIcon.visible = !!value
     this.changeOwner(player)
+    if (hoveredHex === this.id) {
+      getDestination(this.moveId)
+    }
   }
 
   setBattle (defenderId, state) {

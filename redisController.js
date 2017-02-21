@@ -71,9 +71,8 @@ async function spawnArmy (hexId) {
   })
 }
 
-async function register (req, res) {
+async function register (id, { name, hexId }, socket) {
   lock('armyAccess', async (done) => {
-    const { name, hexId } = req.query
     const playerId = uuid.v4()
     const player = { id: playerId, name, color: randomColor() }
     try {
@@ -96,23 +95,20 @@ async function register (req, res) {
 
       spawnArmy(hexId)
 
-      res.send(playerId)
+      socket.send(JSON.stringify([{ type: 'REGISTER', payload: { playerId } }]))
     } catch ({ message }) {
-      res.status(400).send(message)
+      socket.send(JSON.stringify([{ type: 'ERROR_MESSAGE', payload: { message } }]))
     }
     done()
   })
 }
 
-async function getDestination (req, res) {
+async function getDestination (id, { moveId }, socket) {
   try {
-    const { id, moveId } = req.query
     if (moves[moveId]) {
-      const { playerId, destination } = moves[moveId]
+      const { playerId, destination, hexId } = moves[moveId]
       if (id === playerId) {
-        res.json(destination)
-      } else {
-        res.status(401).send('Unauthoried')
+        socket.send(JSON.stringify([{ type: 'GET_DESTINATION', payload: { hexId, destination } }]))
       }
     }
   } catch (err) {
@@ -299,7 +295,7 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
 
           const moveId = uuid.v1()
           if (timeoutId) {
-            moves[moveId] = { timeoutId, playerId: id, destination: patrol ? [beginning, to] : [to] }
+            moves[moveId] = { hexId: nextHex.id, timeoutId, playerId: id, destination: patrol ? [beginning, to] : [to] }
           }
 
           if (hexFrom.moveId) {

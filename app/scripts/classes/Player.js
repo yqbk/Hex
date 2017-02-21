@@ -1,4 +1,4 @@
-import { register } from '../../api'
+import { register } from '../sockets'
 
 class Player {
   constructor (name) {
@@ -6,15 +6,9 @@ class Player {
     this.registered = false
   }
 
-  register ({ hexId }) {
+  register (hexId) {
     if (!this.registered) {
-      register({ name: this.name, hexId })
-        .then((result) => {
-          if (result) {
-            this.id = sessionStorage.getItem('id') // eslint-disable-line
-            this.registered = true
-          }
-        })
+      register(this.name, hexId)
     }
   }
 }
