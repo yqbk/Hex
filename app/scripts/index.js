@@ -22,9 +22,9 @@ export default function init () {
 
   app = new PIXI.Application(WIDTH, HEIGHT, {
     transparent: true,
-    antialias: true,
-    autoResize: true,
-    resolution: window.devicePixelRatio || 1
+    antialias: true
+    // autoResize: true,
+    // resolution: window.devicePixelRatio || 1
   })
   map.appendChild(app.view)
 

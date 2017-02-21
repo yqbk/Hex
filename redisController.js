@@ -291,10 +291,10 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
           const timeoutId = (
             (nextHex.id !== hexTo.id && setTimeout(() => {
               armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol }, beginning)
-            }, 1000)) ||
+            }, 500)) ||
             (nextHex.id === hexTo.id && patrol && setTimeout(() => {
               armyMove(id, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol }, nextHex.id)
-            }, 1000)) || null
+            }, 500)) || null
           )
 
           const moveId = uuid.v1()

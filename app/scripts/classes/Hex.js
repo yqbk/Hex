@@ -105,18 +105,21 @@ class Hex {
     this.initializeItem(this.armyIcon, this.hex.x, this.hex.y - 10, getArmyIconScale(army), 'armyIcons')
     this.container.addChild(this.armyIcon)
 
-    this.number = new PIXI.Text(this.id)
-    this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
-    this.container.addChild(this.number)
+    // this.number = new PIXI.Text(this.id)
+    // this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
+    // this.container.addChild(this.number)
+
+    this.container.interactive = true
+    this.container.buttonMode = true
+    this.container.click = this.handleClick
+    this.container.mouseover = this.handleMouseOver
+    this.container.mouseout = this.handleMouseLeave
   }
 
   initializeItem (item, x, y, scale, displayGroup) {
     item.interactive = true
     item.buttonMode = true
     item.anchor.set(0.5)
-    item.click = this.handleClick
-    item.mouseover = this.handleMouseOver
-    item.mouseout = this.handleMouseLeave
     item.contain = item
     item.scale.set(scale)
     item.x = x
