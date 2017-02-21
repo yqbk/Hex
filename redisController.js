@@ -116,6 +116,19 @@ async function getDestination (id, { moveId }, socket) {
   }
 }
 
+async function clearDestination (id, { moveId }, socket) {
+  try {
+    if (moves[moveId]) {
+      const { playerId, destination, hexId } = moves[moveId]
+      if (id === playerId) {
+        socket.send(JSON.stringify([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }]))
+      }
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 // const sortIds = (id1, id2) => [id1, id2].sort().join('')
 
 function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
@@ -242,12 +255,13 @@ async function calculatePath (id, { from, to }, beginning) {
   }
 }
 
-async function stopMove (id, { hexId }) {
+async function stopMove (id, { hexId }, socket) {
   try {
     await client.select(1)
     const hex = JSON.parse(await client.getAsync(hexId))
     if (hex.owner && hex.owner.id === id) {
       clearTimeout((moves[hex.moveId] || {}).timeoutId)
+      clearDestination(id, { moveId: hex.moveId }, socket)
       delete moves[hex.moveId]
     }
   } catch (err) {
@@ -255,7 +269,7 @@ async function stopMove (id, { hexId }) {
   }
 }
 
-async function armyMove (id, { from, to, number, patrol }, beginning) {
+async function armyMove (id, { from, to, number, patrol }, beginning, socket) {
   lock('armyAccess', async (done) => {
     try {
       await client.select(1)
@@ -286,16 +300,24 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
 
           const timeoutId = (
             (nextHex.id !== hexTo.id && setTimeout(() => {
-              armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol }, beginning)
+              armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol }, beginning, socket)
             }, 500)) ||
             (nextHex.id === hexTo.id && patrol && setTimeout(() => {
-              armyMove(id, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol }, nextHex.id)
+              armyMove(
+                id,
+                { from: nextHex.id, to: beginning, number: number || armyToMove, patrol },
+                nextHex.id,
+                socket
+              )
             }, 500)) || null
           )
 
           const moveId = uuid.v1()
           if (timeoutId) {
             moves[moveId] = { hexId: nextHex.id, timeoutId, playerId: id, destination: patrol ? [beginning, to] : [to] }
+            getDestination(id, { moveId }, socket)
+          } else {
+            clearDestination(id, { moveId: hexFrom.moveId }, socket)
           }
 
           if (hexFrom.moveId) {
@@ -322,7 +344,7 @@ async function armyMove (id, { from, to, number, patrol }, beginning) {
             )
           })
         } else {
-          stopMove(nextHexOwner.id, { hexId: nextHex.id })
+          stopMove(nextHexOwner.id, { hexId: nextHex.id }, socket)
 
           battle({
             attackerId: hexFromOwner.id,

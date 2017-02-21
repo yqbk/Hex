@@ -67,15 +67,15 @@ connect()
   .register('REGISTER', (id, { name, hexId }, socket) => {
     redisController.register(id, { name, hexId }, socket)
   })
-  .register('ARMY_MOVE', (id, { from, to, number, patrol }) => {
-    redisController.armyMove(id, { from, to, number, patrol }, from)
+  .register('ARMY_MOVE', (id, { from, to, number, patrol }, socket) => {
+    redisController.armyMove(id, { from, to, number, patrol }, from, socket)
     // redisController.calculatePath(id, { from, to }, from)
   })
-  .register('STOP_MOVE', (id, { hexId }) => {
-    redisController.stopMove(id, { hexId })
+  .register('STOP_MOVE', (id, { hexId }, socket) => {
+    redisController.stopMove(id, { hexId }, socket)
   })
-  .register('GET_DESTINATION', (id, { moveId }, socket) => {
-    redisController.getDestination(id, { moveId }, socket)
+  .register('GET_DESTINATION', () => {
+    // redisController.getDestination(id, { moveId }, socket)
   })
 
 setInterval(() => {

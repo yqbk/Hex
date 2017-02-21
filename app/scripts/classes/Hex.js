@@ -3,7 +3,7 @@ import PIXIDisplay from 'pixi-display' // eslint-disable-line
 import * as PIXI from 'pixi.js'
 
 import Player from './Player'
-import { armyMove, stopMove, getDestination } from '../sockets'
+import { armyMove, stopMove } from '../sockets'
 
 export const me = new Player('john')
 
@@ -188,9 +188,9 @@ class Hex {
     if (selectedHex) {
       this.hex.tint = 0x99FF99
     }
-    if (this.moveId) {
-      getDestination(this.moveId)
-    }
+    // if (this.moveId) {
+    //   getDestination(this.moveId)
+    // }
   }
 
   clearDestinations () {
@@ -206,7 +206,7 @@ class Hex {
     if (selectedHex && this.id !== selectedHex) {
       this.hex.tint = 0xFFFFFF
     }
-    this.clearDestinations()
+    // this.clearDestinations()
   }
 
   changeOwner (owner) {
@@ -231,9 +231,9 @@ class Hex {
     this.armyIcon.scale.set(getArmyIconScale(value))
     this.armyIcon.visible = !!value
     this.changeOwner(player)
-    if (hoveredHex === this.id) {
-      getDestination(this.moveId)
-    }
+    // if (hoveredHex === this.id) {
+    //   getDestination(this.moveId)
+    // }
   }
 
   setBattle (defenderId, state) {

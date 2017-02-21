@@ -92,5 +92,11 @@ export default function init () {
             grid[id].hex.tint = 0x99CCFF
           })
         })
+        .register('CLEAR_DESTINATION', ({ hexId, destination }) => {
+          destination.forEach((id) => {
+            grid[id].hex.tint = 0xFFFFFF
+          })
+          grid[hexId].destination = []
+        })
     })
 }
