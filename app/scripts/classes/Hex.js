@@ -70,6 +70,7 @@ class Hex {
       const border = new PIXI.Sprite(PIXI.Texture.fromImage('images/border.png'))
       this.initializeItem(border, this.x, this.y, 0.5, 'borders')
       border.rotation = index * (Math.PI / 3)
+      border.visible = false
       this.container.addChild(border)
       return border
     })
@@ -215,7 +216,7 @@ class Hex {
       this.armyNumber.style.fill = `#${owner.color}`
       this.armyIcon.tint = `0x${owner.color}`
     }
-    this.reinitializeBordersWithNeighbours()
+    // this.reinitializeBordersWithNeighbours()
   }
 
   changeHexTint (color, { id }) {
@@ -244,7 +245,7 @@ class Hex {
   render (globalContainer, grid) {
     globalContainer.addChild(this.container)
     this.grid = grid
-    this.reinitializeBorders()
+    // this.reinitializeBorders()
   }
 }
 
