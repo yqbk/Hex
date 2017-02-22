@@ -2,11 +2,14 @@ const redis = require('redis')
 const bluebird = require('bluebird')
 const uuid = require('uuid')
 const mapFile = require('./static/map.json')
+const socketServer = require('./socketServer')
 
 bluebird.promisifyAll(redis.RedisClient.prototype)
 bluebird.promisifyAll(redis.Multi.prototype)
 const client = redis.createClient(process.env.REDIS_URL)
 const lock = require('redis-lock')(client)
+
+const emit = socketServer.emit
 
 client.on('connect', async () => {
   await client.flushall()
@@ -16,13 +19,7 @@ client.on('connect', async () => {
   console.log('Map inserted into redis')
 })
 
-let buffer = []
 const moves = {}
-
-const getBuffer = () => buffer
-const clearBuffer = () => {
-  buffer = []
-}
 
 const randomColor = () => {
   const number = Math.floor(Math.random() * 16777215) + 1
@@ -56,10 +53,10 @@ async function spawnArmy (hexId) {
       const nexArmy = hexArmy + 10
       hex.army = nexArmy > 100 ? hexArmy : nexArmy
       await client.setAsync(hexId, JSON.stringify(hex))
-      buffer.push({
+      emit([{
         type: 'CHANGE_HEX_ARMY_VALUE',
         payload: { hexId, armyValue: hex.army }
-      })
+      }])
 
       setTimeout(() => {
         spawnArmy(hexId)
@@ -71,7 +68,7 @@ async function spawnArmy (hexId) {
   })
 }
 
-async function register (id, { name, hexId }, socket) {
+async function register (id, { name, hexId }, send) {
   lock('armyAccess', async (done) => {
     const playerId = uuid.v4()
     const player = { id: playerId, name, color: randomColor() }
@@ -91,45 +88,16 @@ async function register (id, { name, hexId }, socket) {
 
       await client.setAsync(hexId, JSON.stringify(hex))
 
-      buffer.push({ type: 'PLAYER_REGISTERED', payload: { hexId, player } })
-
       spawnArmy(hexId)
 
-      socket.send(JSON.stringify([{ type: 'REGISTER', payload: { playerId } }]))
+      emit([{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
+      send([{ type: 'REGISTER', payload: { playerId } }])
     } catch ({ message }) {
-      socket.send(JSON.stringify([{ type: 'ERROR_MESSAGE', payload: { message } }]))
+      send([{ type: 'ERROR_MESSAGE', payload: { message } }])
     }
     done()
   })
 }
-
-async function getDestination (id, { moveId }, socket) {
-  try {
-    if (moves[moveId]) {
-      const { playerId, destination, hexId } = moves[moveId]
-      if (id === playerId) {
-        socket.send(JSON.stringify([{ type: 'GET_DESTINATION', payload: { hexId, destination } }]))
-      }
-    }
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-async function clearDestination (id, { moveId }, socket) {
-  try {
-    if (moves[moveId]) {
-      const { playerId, destination, hexId } = moves[moveId]
-      if (id === playerId) {
-        socket.send(JSON.stringify([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }]))
-      }
-    }
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-// const sortIds = (id1, id2) => [id1, id2].sort().join('')
 
 function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
   lock('armyAccess', async (done) => {
@@ -160,14 +128,16 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
           client.setAsync(defenderHexId, JSON.stringify(defenderHex))
         ])
 
-        buffer.push({
-          type: 'CHANGE_HEX_ARMY_VALUE',
-          payload: { hexId: attackerHexId, armyValue: attackerHexArmy }
-        })
-        buffer.push({
-          type: 'CHANGE_HEX_ARMY_VALUE',
-          payload: { hexId: defenderHexId, armyValue: defenderHexArmy }
-        })
+        emit([
+          {
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: attackerHexId, armyValue: attackerHexArmy }
+          },
+          {
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: defenderHexId, armyValue: defenderHexArmy }
+          }
+        ])
 
         setTimeout(() => battle({ attackerId, defenderId, attackerHexId, defenderHexId }), 1000)
       } else {
@@ -187,19 +157,20 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
           client.setAsync(defenderHexId, JSON.stringify(defenderHex))
         ])
 
-        buffer.push({
-          type: 'CHANGE_HEX_ARMY_VALUE',
-          payload: { hexId: attackerHexId, armyValue: attackerHex.army }
-        })
-        buffer.push({
-          type: 'CHANGE_HEX_ARMY_VALUE',
-          payload: { hexId: defenderHexId, armyValue: defenderHex.army, player: newOwner }
-        })
-
-        buffer.push({
-          type: 'SET_BATTLE',
-          payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
-        })
+        emit([
+          {
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: attackerHexId, armyValue: attackerHex.army }
+          },
+          {
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: defenderHexId, armyValue: defenderHex.army, player: newOwner }
+          },
+          {
+            type: 'SET_BATTLE',
+            payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
+          }
+        ])
       }
     } catch (err) {
       console.error(err)
@@ -231,37 +202,14 @@ async function getNextHex ({ hexFrom, hexTo }) {
   return {}
 }
 
-async function calculatePath (id, { from, to }, beginning) {
-  try {
-    await client.select(1)
-
-    const [hexFrom, hexTo] = (await Promise.all([
-      client.getAsync(from),
-      client.getAsync(to)
-    ])).map(JSON.parse)
-
-    const nextMove = await getNextHex({ hexFrom, hexTo })
-
-    const pathId = `${id}${beginning}${to}`
-    await client.rpushAsync([pathId, nextMove.id])
-    await client.lrangeAsync(pathId, 0, -1)
-    if (nextMove.id !== hexTo.id) {
-      setTimeout(() => calculatePath(id, { from: nextMove.id, to }, beginning), 100)
-    } else {
-      await client.del(pathId)
-    }
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-async function stopMove (id, { hexId }, socket) {
+async function stopMove (id, { hexId }, send) {
   try {
     await client.select(1)
     const hex = JSON.parse(await client.getAsync(hexId))
-    if (hex.owner && hex.owner.id === id) {
-      clearTimeout((moves[hex.moveId] || {}).timeoutId)
-      clearDestination(id, { moveId: hex.moveId }, socket)
+    if (hex.owner && hex.owner.id === id && hex.moveId) {
+      const { timeoutId, destination } = moves[hex.moveId] || {}
+      clearTimeout(timeoutId)
+      send([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
       delete moves[hex.moveId]
     }
   } catch (err) {
@@ -269,7 +217,7 @@ async function stopMove (id, { hexId }, socket) {
   }
 }
 
-async function armyMove (id, { from, to, number, patrol }, beginning, socket) {
+async function armyMove (id, { from, to, number, patrol, moveId }, beginning, send) {
   lock('armyAccess', async (done) => {
     try {
       await client.select(1)
@@ -300,51 +248,45 @@ async function armyMove (id, { from, to, number, patrol }, beginning, socket) {
 
           const timeoutId = (
             (nextHex.id !== hexTo.id && setTimeout(() => {
-              armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol }, beginning, socket)
+              armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol, moveId }, beginning,
+                send)
             }, 500)) ||
             (nextHex.id === hexTo.id && patrol && setTimeout(() => {
-              armyMove(
-                id,
-                { from: nextHex.id, to: beginning, number: number || armyToMove, patrol },
-                nextHex.id,
-                socket
-              )
+              armyMove(id, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol, moveId },
+                nextHex.id, send)
             }, 500)) || null
           )
 
-          const moveId = uuid.v1()
+          const destination = patrol ? [beginning, to] : [to]
+          const hexId = nextHex.id
+          hexFrom.moveId = null
+
           if (timeoutId) {
-            moves[moveId] = { hexId: nextHex.id, timeoutId, playerId: id, destination: patrol ? [beginning, to] : [to] }
-            getDestination(id, { moveId }, socket)
+            moves[moveId] = { hexId, timeoutId, playerId: id, destination }
+            nextHex.moveId = moveId
+            send([{ type: 'GET_DESTINATION', payload: { hexId, destination } }])
           } else {
-            clearDestination(id, { moveId: hexFrom.moveId }, socket)
+            send([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
           }
-
-          if (hexFrom.moveId) {
-            delete moves[hexFrom.moveId]
-          }
-
-          nextHex.moveId = moveId
 
           await Promise.all([
             client.setAsync(from, JSON.stringify(hexFrom)),
             client.setAsync(nextHex.id, JSON.stringify(nextHex))
           ])
 
-          buffer.push({
-            type: 'CHANGE_HEX_ARMY_VALUE',
-            payload: { hexId: from, armyValue: hexFrom.army, player: hexFrom.owner }
-          })
-          buffer.push({
-            type: 'CHANGE_HEX_ARMY_VALUE',
-            payload: Object.assign(
-              {},
-              { hexId: nextHex.id, armyValue: nextHex.army, player: nextHex.owner },
-              timeoutId ? { moveId } : { moveId: null }
-            )
-          })
+          emit([
+            {
+              type: 'CHANGE_HEX_ARMY_VALUE',
+              payload: { hexId: from, armyValue: hexFrom.army, player: hexFrom.owner, moveId: null }
+            },
+            {
+              type: 'CHANGE_HEX_ARMY_VALUE',
+              payload: Object.assign({}, { hexId: nextHex.id, armyValue: nextHex.army, player: nextHex.owner },
+              timeoutId ? { moveId } : { moveId: null })
+            }
+          ])
         } else {
-          stopMove(nextHexOwner.id, { hexId: nextHex.id }, socket)
+          // stopMove(nextHexOwner.id, { hexId: nextHex.id }, socket)
 
           battle({
             attackerId: hexFromOwner.id,
@@ -353,7 +295,7 @@ async function armyMove (id, { from, to, number, patrol }, beginning, socket) {
             defenderHexId: nextHex.id
           })
 
-          buffer.push({ type: 'SET_BATTLE', payload: { attackerId: hexFrom.id, defenderId: nextHex.id, state: true } })
+          emit([{ type: 'SET_BATTLE', payload: { attackerId: hexFrom.id, defenderId: nextHex.id, state: true } }])
         }
       }
     } catch (err) {
@@ -364,12 +306,8 @@ async function armyMove (id, { from, to, number, patrol }, beginning, socket) {
 }
 
 module.exports = {
-  getDestination,
-  getBuffer,
-  clearBuffer,
   getMap,
   register,
   armyMove,
-  calculatePath,
   stopMove
 }

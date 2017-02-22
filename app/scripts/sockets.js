@@ -9,6 +9,7 @@ export default function connect () {
 
   ws.onmessage = (evt) => {
     const buffer = JSON.parse(evt.data)
+    console.log(buffer)
     buffer.forEach(action => (callbacks[action.type] ? callbacks[action.type](action.payload) : null))
   }
 
