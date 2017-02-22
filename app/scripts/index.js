@@ -17,6 +17,23 @@ const createMap = () => getMap().then(({ data }) => Object.keys(data).reduce((ac
   [key]: new Hex(data[key])
 }), {}))
 
+
+const text = 'ala ma kota'
+
+
+function getCount (text) {
+  const tab = text.split(" ")
+  const freq = {}
+
+  for (let i = 0; i < tab.length; i += 1) {
+    const word = tab[i]
+    freq.word = freq.word ? freq.word += 1 : 1
+  }
+
+  return freq
+}
+
+
 export default function init () {
   const map = document.getElementById('map')
   const WIDTH = window.innerWidth
