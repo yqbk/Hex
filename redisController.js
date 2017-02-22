@@ -164,7 +164,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }) {
           },
           {
             type: 'CHANGE_HEX_ARMY_VALUE',
-            payload: { hexId: defenderHexId, armyValue: defenderHex.army, player: newOwner }
+            payload: { hexId: defenderHexId, armyValue: defenderHex.army, player: newOwner, from: attackerHexId }
           },
           {
             type: 'SET_BATTLE',
@@ -281,12 +281,18 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
             },
             {
               type: 'CHANGE_HEX_ARMY_VALUE',
-              payload: Object.assign({}, { hexId: nextHex.id, armyValue: nextHex.army, player: nextHex.owner },
-              timeoutId ? { moveId } : { moveId: null })
+              payload: Object.assign({}, {
+                hexId: nextHex.id,
+                armyValue: nextHex.army,
+                player: nextHex.owner,
+                from: hexFrom.id
+              }, timeoutId ? { moveId } : { moveId: null })
             }
           ])
         } else {
-          // stopMove(nextHexOwner.id, { hexId: nextHex.id }, socket)
+          // stopMove(nextHexOwner.id, { hexId: nextHex.id }, send)
+          const { hexId, destination } = moves[moveId]
+          send([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
 
           battle({
             attackerId: hexFromOwner.id,

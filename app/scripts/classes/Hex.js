@@ -3,13 +3,12 @@ import PIXIDisplay from 'pixi-display' // eslint-disable-line
 import * as PIXI from 'pixi.js'
 
 import Player from './Player'
-import { armyMove, stopMove } from '../sockets'
+import { armyMove } from '../sockets'
 
 export const me = new Player('john')
 
 let moved = false
-let selectedHex = null
-let hoveredHex = null
+let selectedHexIds = []
 
 let ctrlPressed = false
 
@@ -19,6 +18,13 @@ const displayGroups = displayGroupsList.reduce((acc, curr, index) => ({
   [curr]: new PIXI.DisplayGroup(index)
 }), {})
 
+export function setSelectedHexIds (value) {
+  selectedHexIds = value
+}
+
+export function getSelectedHexIds () {
+  return selectedHexIds
+}
 
 export function setMoved (m) {
   moved = m
@@ -157,41 +163,25 @@ class Hex {
 
   handleClick () {
     if (!moved) {
-      let armyMoved = false
       me.register(this.id)
 
-      if (this.armyNumber.visible && this.moveId) {
-        stopMove(this.id)
-      }
-
-      if (selectedHex !== null && this.grid[selectedHex]) {
-        this.changeHexTint(0xFFFFFF, { id: selectedHex })
-        this.grid[selectedHex].neighbours.forEach(this.changeHexTint.bind(this, 0xFFFFFF))
-
-        if (this.grid[selectedHex].armyNumber && selectedHex !== this.id) {
-          armyMove(ctrlPressed, selectedHex, this.id)
-          armyMoved = true
-          selectedHex = null
-          this.grid[hoveredHex].hex.tint = 0xFFFFFF
-          hoveredHex = null
+      if (!selectedHexIds.length) {
+        if (this.armyNumber.visible) {
+          this.select()
         }
-      }
-
-      if (this.armyNumber.visible && this.owner && me.id === this.owner.id && !armyMoved) {
-        this.hex.tint = 0x99FF99
-        selectedHex = this.id
+      } else {
+        selectedHexIds.forEach((id) => {
+          armyMove(ctrlPressed, id, this.id)
+          this.grid[id].deselect()
+        })
       }
     }
   }
 
   handleMouseOver () {
-    hoveredHex = this.id
-    if (selectedHex) {
+    if (selectedHexIds.length) {
       this.hex.tint = 0x99FF99
     }
-    // if (this.moveId) {
-    //   getDestination(this.moveId)
-    // }
   }
 
   clearDestinations () {
@@ -204,17 +194,23 @@ class Hex {
   }
 
   handleMouseLeave () {
-    if (selectedHex && this.id !== selectedHex) {
+    if (!selectedHexIds.length || !selectedHexIds.includes(this.id)) {
       this.hex.tint = 0xFFFFFF
     }
     // this.clearDestinations()
   }
 
-  changeOwner (owner) {
+  changeOwner (owner, value) {
     if (owner) {
       this.owner = owner
       this.armyNumber.style.fill = `#${owner.color}`
       this.armyIcon.tint = `0x${owner.color}`
+    }
+
+    if (this.owner && this.owner.id === me.id && value !== 0) {
+      me.ownedHexIds = [...me.ownedHexIds, this.id]
+    } else {
+      me.ownedHexIds = me.ownedHexIds.filter(id => id !== this.id)
     }
     // this.reinitializeBordersWithNeighbours()
   }
@@ -223,18 +219,32 @@ class Hex {
     this.grid[id].hex.tint = color
   }
 
-  changeArmyValue (value, { player, moveId }) {
-    if (moveId !== null) {
-      this.moveId = moveId
-    }
+  changeArmyValue (value, { player, moveId, from }) {
+    this.moveId = moveId
     this.armyNumber.text = value
     this.armyNumber.visible = !!value
     this.armyIcon.scale.set(getArmyIconScale(value))
     this.armyIcon.visible = !!value
-    this.changeOwner(player)
+    this.changeOwner(player, value)
+
+    if (from && selectedHexIds.includes(from)) {
+      this.grid[from].deselect()
+      this.select()
+    }
+    // console.log(me.ownedHexIds)
     // if (hoveredHex === this.id) {
     //   getDestination(this.moveId)
     // }
+  }
+
+  select () {
+    this.hex.tint = 0x99FF99
+    selectedHexIds = [...selectedHexIds, this.id]
+  }
+
+  deselect () {
+    this.hex.tint = 0xFFFFFF
+    selectedHexIds = selectedHexIds.filter(id => id !== this.id)
   }
 
   setBattle (defenderId, state) {

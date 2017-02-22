@@ -41,6 +41,3 @@ socketServer.connect(server)
     redisController.stopMove(id, { hexId: from }, send)
     redisController.armyMove(id, { from, to, number, patrol, moveId }, from, send)
   })
-  .register('STOP_MOVE', (id, { hexId }, send) => {
-    // redisController.stopMove(id, { hexId }, send)
-  })

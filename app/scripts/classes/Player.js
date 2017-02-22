@@ -4,6 +4,7 @@ class Player {
   constructor (name) {
     this.name = name
     this.registered = false
+    this.ownedHexIds = []
   }
 
   register (hexId) {

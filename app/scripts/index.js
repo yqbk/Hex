@@ -5,7 +5,7 @@ import { getMap } from '../api'
 import store from '../store'
 import { addToQueue } from '../actions'
 
-import Hex, { setMoved, me } from './classes/Hex'
+import Hex, { me, getSelectedHexIds } from './classes/Hex'
 
 let app
 let container
@@ -16,6 +16,13 @@ const createMap = () => getMap().then(({ data }) => Object.keys(data).reduce((ac
   ...acc,
   [key]: new Hex(data[key])
 }), {}))
+
+const isInside = ({ x, y }, { startX, startY, endX, endY }, scale) => (
+  Math.min(startX, endX) <= scale * x &&
+  Math.max(startX, endX) >= scale * x &&
+  Math.min(startY, endY) <= scale * y &&
+  Math.max(startY, endY) >= scale * y
+)
 
 export default function init () {
   const map = document.getElementById('map')
@@ -30,26 +37,17 @@ export default function init () {
   })
   map.appendChild(app.view)
 
+  const scale = 0.7
+
   container = new PIXI.Container()
-  container.scale.x = 0.7
-  container.scale.y = 0.7
+  container.scale.x = scale
+  container.scale.y = scale
   container.interactive = true
-  container.mousedown = () => {
-    dragging = true
-    setMoved(false)
-  }
-  container.mouseup = () => {
-    dragging = false
-  }
-  container.mousemove = (e) => {
-    if (dragging) {
-      container.x += e.data.originalEvent.movementX
-      container.y += e.data.originalEvent.movementY
-      if (Math.abs(e.data.originalEvent.movementX) > 1 || Math.abs(e.data.originalEvent.movementY) > 1) {
-        setMoved(true)
-      }
-    }
-  }
+
+  const graphics = new PIXI.Graphics()
+  let startX
+  let startY
+
   // let counter = 1
   // document.addEventListener('mousewheel', (e) => { // eslint-disable-line
   //   counter += e.wheelDelta < 0 ? -0.05 : 0.05
@@ -61,12 +59,49 @@ export default function init () {
   app.stage.displayList = new PIXI.DisplayList()
 
   app.stage.addChild(container)
+  app.stage.addChild(graphics)
 
   createMap()
     .then((grid) => {
       Object.keys(grid).forEach((key) => {
         grid[key].render(container, grid)
       })
+
+      container.mousedown = (e) => {
+        dragging = true
+        const { data: { global: { x, y } = { x: 0, y: 0 } } = {} } = e
+        startX = x
+        startY = y
+      }
+
+      container.mouseup = () => {
+        dragging = false
+        graphics.clear()
+      }
+
+      container.mousemove = (e) => {
+        if (dragging) {
+          const { data: { global: { x, y } = { x: 0, y: 0 } } = {} } = e
+          graphics.clear()
+          graphics.lineStyle(2, 0x00CC00, 0.5)
+          graphics.beginFill(0x33FF33, 0.2)
+          graphics.drawRect(startX, startY, x - startX, y - startY)
+          // container.x += e.data.originalEvent.movementX
+          // container.y += e.data.originalEvent.movementY
+
+          if (Math.abs(startX - x) + Math.abs(startY - y) > 2) {
+            getSelectedHexIds().forEach((id) => {
+              grid[id].deselect()
+            })
+
+            me.ownedHexIds.forEach((id) => {
+              if (isInside(grid[id], { startX, startY, endX: x, endY: y }, scale)) {
+                grid[id].select()
+              }
+            })
+          }
+        }
+      }
 
       connect()
         .register('REGISTER', ({ playerId }) => {
@@ -80,8 +115,8 @@ export default function init () {
         .register('PLAYER_REGISTERED', ({ hexId, player }) => {
           grid[hexId].changeOwner(player)
         })
-        .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId }) => {
-          grid[hexId].changeArmyValue(armyValue, { player, moveId })
+        .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId, from }) => {
+          grid[hexId].changeArmyValue(armyValue, { player, moveId, from })
         })
         .register('SET_BATTLE', ({ attackerId, defenderId, state }) => {
           grid[attackerId].setBattle(defenderId, state)

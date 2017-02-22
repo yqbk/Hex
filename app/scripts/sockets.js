@@ -9,7 +9,6 @@ export default function connect () {
 
   ws.onmessage = (evt) => {
     const buffer = JSON.parse(evt.data)
-    console.log(buffer)
     buffer.forEach(action => (callbacks[action.type] ? callbacks[action.type](action.payload) : null))
   }
 
@@ -31,10 +30,6 @@ export function register (name, hexId) {
 
 export function armyMove (patrol, from, to, number) {
   ws.send(createRequest('ARMY_MOVE', { from, to, number, patrol }))
-}
-
-export function stopMove (hexId) {
-  ws.send(createRequest('STOP_MOVE', { hexId }))
 }
 
 export function getDestination (moveId) {

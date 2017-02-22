@@ -12,8 +12,8 @@ const castles = [20, 76, 200, 57, 177, 13, 98]
 const map = _.range(0, mapWidth * mapHeight)
   .map(id => ({
     id,
-    x: ((id % mapWidth) * size) + ((id % (2 * mapWidth)) >= mapWidth ? size / 2 : 0) + 600,
-    y: ((size - 10) * Math.floor(id / mapWidth)) + 200,
+    x: ((id % mapWidth) * size) + ((id % (2 * mapWidth)) >= mapWidth ? size / 2 : 0),
+    y: ((size - 10) * Math.floor(id / mapWidth)),
     neighbours: generator.getNeighbours(id, mapWidth, mapHeight),
     type: generator.getType(id),
     castle: castles.includes(id)

@@ -23,7 +23,15 @@ function connect (server) {
 
     socket.on('message', (message) => {
       const { id, type, payload } = JSON.parse(message)
-      callbacks[type](id, payload, list => socket.send(JSON.stringify(list)))
+      callbacks[type](id, payload, (list) => {
+        try {
+          if (socket.readyState === 1) {
+            socket.send(JSON.stringify(list))
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      })
     })
 
     socket.on('close', () => {
