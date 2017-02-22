@@ -166,12 +166,14 @@ class Hex {
       me.register(this.id)
 
       if (!selectedHexIds.length) {
-        if (this.armyNumber.visible) {
+        if (this.armyNumber.visible && this.owner && this.owner.id === me.id) {
           this.select()
         }
       } else {
         selectedHexIds.forEach((id) => {
-          armyMove(ctrlPressed, id, this.id)
+          if (this.grid[id].owner && this.grid[id].owner.id === me.id) {
+            armyMove(ctrlPressed, id, this.id)
+          }
           this.grid[id].deselect()
         })
       }
