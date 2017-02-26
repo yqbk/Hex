@@ -6,6 +6,7 @@ const webpack = require('webpack')
 const uuid = require('uuid')
 const redisController = require('./redisController')
 const socketServer = require('./socketServer')
+const actions = require('./app/scripts/actions')
 
 const port = process.env.PORT || 5000
 const compiler = webpack(config)
@@ -32,11 +33,16 @@ server.listen(port, '0.0.0.0', (err) => {
   console.log(`Listening on port ${port}`) // eslint-disable-line
 })
 
-socketServer.connect(server)
-  .register('REGISTER', (id, { name, hexId }, send) => {
+socketServer.listener(server)
+  .on(actions.QUEUE_JOINED, (id, params, send) => {
+    const playerId = id || uuid.v1()
+    send([{ type: actions.QUEUE_JOINED, payload: { id: playerId } }])
+    console.log(playerId)
+  })
+  .on('REGISTER', (id, { name, hexId }, send) => {
     redisController.register(id, { name, hexId }, send)
   })
-  .register('ARMY_MOVE', (id, { from, to, number, patrol }, send) => {
+  .on('ARMY_MOVE', (id, { from, to, number, patrol }, send) => {
     const moveId = uuid.v1()
     redisController.stopMove(id, { hexId: from }, send)
     redisController.armyMove(id, { from, to, number, patrol, moveId }, from, send)

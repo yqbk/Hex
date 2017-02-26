@@ -99,114 +99,6 @@ async function register (id, { name, hexId }, send) {
   })
 }
 
-function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send) {
-  lock('armyAccess', async (done) => {
-    try {
-      await client.select(1)
-      const [attackerHex, defenderHex] = (await Promise.all([
-        client.getAsync(attackerHexId),
-        client.getAsync(defenderHexId)
-      ])).map(JSON.parse)
-
-      let attackerHexArmy = attackerHex.army || 0
-      let defenderHexArmy = defenderHex.army || 0
-
-      const attackerDice = attackerHexArmy
-        ? Math.floor(Math.random() * (attackerHexArmy > 20 ? 20 : attackerHexArmy)) + 1 : 0
-      const defenderDice = defenderHexArmy
-        ? Math.floor(Math.random() * (defenderHexArmy > 20 ? 20 : defenderHexArmy)) + 1 : 0
-
-      attackerHexArmy -= defenderDice
-      defenderHexArmy -= attackerDice
-
-      attackerHex.army = attackerHexArmy < 0 ? 0 : attackerHexArmy
-      defenderHex.army = defenderHexArmy < 0 ? 0 : defenderHexArmy
-
-      if (attackerHex.owner.id !== defenderHex.owner.id && attackerHexArmy > 0 && defenderHexArmy > 0) {
-        await Promise.all([
-          client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
-          client.setAsync(defenderHexId, JSON.stringify(defenderHex))
-        ])
-
-        emit([
-          {
-            type: 'CHANGE_HEX_ARMY_VALUE',
-            payload: { hexId: attackerHexId, armyValue: attackerHexArmy }
-          },
-          {
-            type: 'CHANGE_HEX_ARMY_VALUE',
-            payload: { hexId: defenderHexId, armyValue: defenderHexArmy }
-          }
-        ])
-
-        setTimeout(() => battle({ attackerId, defenderId, attackerHexId, defenderHexId }, send), 1000)
-      } else {
-        if (attackerHexArmy > defenderHexArmy || attackerHex.owner.id === defenderHex.owner.id) {
-          defenderHex.owner = attackerHex.owner
-
-          await Promise.all([
-            client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
-            client.setAsync(defenderHexId, JSON.stringify(defenderHex))
-          ])
-
-          const moveId = uuid.v1()
-          armyMove(attackerHex.owner.id, {
-            from: attackerHex.id,
-            to: defenderHex.id,
-            moveId
-          }, attackerHex.id, send)
-
-          emit([
-            {
-              type: 'SET_BATTLE',
-              payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
-            }
-          ])
-        } else {
-          await Promise.all([
-            client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
-            client.setAsync(defenderHexId, JSON.stringify(defenderHex))
-          ])
-
-          emit([
-            {
-              type: 'CHANGE_HEX_ARMY_VALUE',
-              payload: { hexId: attackerHexId, armyValue: attackerHex.army }
-            },
-            {
-              type: 'CHANGE_HEX_ARMY_VALUE',
-              payload: { hexId: defenderHexId, armyValue: defenderHex.army }
-            },
-            {
-              type: 'SET_BATTLE',
-              payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
-            }
-          ])
-        }
-
-        // await client.select(0)
-        // const [newOwner, [newAttackerHexArmy, newDefenderHexArmy]] = [
-        //   JSON.parse(await client.getAsync(attackerHexArmy > defenderHexArmy ? attackerId : defenderId)),
-        //   attackerHexArmy > defenderHexArmy ? [0, attackerHexArmy] : [0, defenderHexArmy]
-        // ]
-        //
-        // await client.select(1)
-        // attackerHex.army = newAttackerHexArmy < 0 ? 0 : newAttackerHexArmy
-        // defenderHex.army = newDefenderHexArmy < 0 ? 0 : newDefenderHexArmy
-        // defenderHex.owner = newOwner
-        //
-        // await Promise.all([
-        //   client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
-        //   client.setAsync(defenderHexId, JSON.stringify(defenderHex))
-        // ])
-      }
-    } catch (err) {
-      console.error('battle', err)
-    }
-    done()
-  })
-}
-
 const getDistance = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => Math.sqrt(((x2 - x1) ** 2) + ((y2 - y1) ** 2))
 
 async function getNextHex ({ hexFrom, hexTo }) {
@@ -324,7 +216,7 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
             send([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
           }
 
-          battle({
+          battle({ // eslint-disable-line
             attackerId: hexFromOwner.id,
             defenderId: nextHexOwner.id,
             attackerHexId: hexFrom.id,
@@ -336,6 +228,96 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
       }
     } catch (err) {
       console.error('armyMove', err)
+    }
+    done()
+  })
+}
+
+function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send) {
+  lock('armyAccess', async (done) => {
+    try {
+      await client.select(1)
+      const [attackerHex, defenderHex] = (await Promise.all([
+        client.getAsync(attackerHexId),
+        client.getAsync(defenderHexId)
+      ])).map(JSON.parse)
+
+      let attackerHexArmy = attackerHex.army || 0
+      let defenderHexArmy = defenderHex.army || 0
+
+      const attackerDice = attackerHexArmy
+        ? Math.floor(Math.random() * (attackerHexArmy > 20 ? 20 : attackerHexArmy)) + 1 : 0
+      const defenderDice = defenderHexArmy
+        ? Math.floor(Math.random() * (defenderHexArmy > 20 ? 20 : defenderHexArmy)) + 1 : 0
+
+      attackerHexArmy -= defenderDice
+      defenderHexArmy -= attackerDice
+
+      attackerHex.army = attackerHexArmy < 0 ? 0 : attackerHexArmy
+      defenderHex.army = defenderHexArmy < 0 ? 0 : defenderHexArmy
+
+      if (attackerHex.owner.id !== defenderHex.owner.id && attackerHexArmy > 0 && defenderHexArmy > 0) {
+        await Promise.all([
+          client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
+          client.setAsync(defenderHexId, JSON.stringify(defenderHex))
+        ])
+
+        emit([
+          {
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: attackerHexId, armyValue: attackerHexArmy }
+          },
+          {
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: defenderHexId, armyValue: defenderHexArmy }
+          }
+        ])
+
+        setTimeout(() => battle({ attackerId, defenderId, attackerHexId, defenderHexId }, send), 1000)
+      } else if (attackerHexArmy > defenderHexArmy || attackerHex.owner.id === defenderHex.owner.id) {
+        defenderHex.owner = attackerHex.owner
+
+        await Promise.all([
+          client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
+          client.setAsync(defenderHexId, JSON.stringify(defenderHex))
+        ])
+
+        const moveId = uuid.v1()
+        armyMove(attackerHex.owner.id, {
+          from: attackerHex.id,
+          to: defenderHex.id,
+          moveId
+        }, attackerHex.id, send)
+
+        emit([
+          {
+            type: 'SET_BATTLE',
+            payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
+          }
+        ])
+      } else {
+        await Promise.all([
+          client.setAsync(attackerHexId, JSON.stringify(attackerHex)),
+          client.setAsync(defenderHexId, JSON.stringify(defenderHex))
+        ])
+
+        emit([
+          {
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: attackerHexId, armyValue: attackerHex.army }
+          },
+          {
+            type: 'CHANGE_HEX_ARMY_VALUE',
+            payload: { hexId: defenderHexId, armyValue: defenderHex.army }
+          },
+          {
+            type: 'SET_BATTLE',
+            payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
+          }
+        ])
+      }
+    } catch (err) {
+      console.error('battle', err)
     }
     done()
   })

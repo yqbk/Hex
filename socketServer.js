@@ -13,7 +13,7 @@ function emit (list) {
   })
 }
 
-function connect (server) {
+function listener (server) {
   const callbacks = {}
   const ws = new WebSocket.Server({ server })
 
@@ -40,7 +40,7 @@ function connect (server) {
   })
 
   return {
-    register: function (type, callback) { // eslint-disable-line
+    on: function (type, callback) { // eslint-disable-line
       callbacks[type] = callback
       return this
     }
@@ -48,6 +48,6 @@ function connect (server) {
 }
 
 module.exports = {
-  connect,
+  listener,
   emit
 }

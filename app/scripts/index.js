@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
 
-import connect from './sockets'
+import listener from './sockets'
 import { getMap } from '../api'
 import store from '../store'
 import { addToQueue } from '../actions'
@@ -103,31 +103,31 @@ export default function init () {
         }
       }
 
-      connect()
-        .register('REGISTER', ({ playerId }) => {
+      listener()
+        .on('REGISTER', ({ playerId }) => {
           sessionStorage.setItem('id', playerId)
           me.id = playerId
           me.registered = true
         })
-        .register('ERROR_MESSAGE', ({ message }) => {
+        .on('ERROR_MESSAGE', ({ message }) => {
           store.dispatch(addToQueue(message))
         })
-        .register('PLAYER_REGISTERED', ({ hexId, player }) => {
+        .on('PLAYER_REGISTERED', ({ hexId, player }) => {
           grid[hexId].changeOwner(player)
         })
-        .register('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId, from }) => {
+        .on('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId, from }) => {
           grid[hexId].changeArmyValue(armyValue, { player, moveId, from })
         })
-        .register('SET_BATTLE', ({ attackerId, defenderId, state }) => {
+        .on('SET_BATTLE', ({ attackerId, defenderId, state }) => {
           grid[attackerId].setBattle(defenderId, state)
         })
-        .register('GET_DESTINATION', ({ hexId, destination }) => {
+        .on('GET_DESTINATION', ({ hexId, destination }) => {
           grid[hexId].destination = destination
           destination.forEach((id) => {
             grid[id].hex.tint = 0x99CCFF
           })
         })
-        .register('CLEAR_DESTINATION', ({ hexId, destination }) => {
+        .on('CLEAR_DESTINATION', ({ hexId, destination }) => {
           destination.forEach((id) => {
             grid[id].hex.tint = 0xFFFFFF
           })
