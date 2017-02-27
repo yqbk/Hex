@@ -33,10 +33,25 @@ server.listen(port, '0.0.0.0', (err) => {
   console.log(`Listening on port ${port}`) // eslint-disable-line
 })
 
+let playersQueue = []
+
+function checkQueue () {
+  const [p1, p2, ...rest] = playersQueue
+  if (p1 && p2) {
+    playersQueue = rest
+    redisController.startDuel(p1, p2)
+  }
+}
+
 socketServer.listener(server)
-  .on(actions.QUEUE_JOINED, (id, params, send) => {
-    const playerId = id || uuid.v1()
-    send([{ type: actions.QUEUE_JOINED, payload: { id: playerId } }])
+  .on(actions.QUEUE_JOINED, (id, { username }, socket) => {
+    const playerId = id || uuid.v4()
+    if (!playersQueue.includes(playerId)) {
+      playersQueue = [...playersQueue, playerId]
+      socketServer.addPlayer(playerId, socket, { username })
+      socketServer.send(playerId, [{ type: actions.QUEUE_JOINED, payload: { id: playerId } }])
+    }
+    checkQueue()
     console.log(playerId)
   })
   .on('REGISTER', (id, { name, hexId }, send) => {

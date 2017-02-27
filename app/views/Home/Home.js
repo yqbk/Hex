@@ -1,6 +1,12 @@
 import React, { Component, PropTypes } from 'react'
+import { connect } from 'react-redux'
+import { browserHistory } from 'react-router'
 
 import Name from '../../components/Name/Name'
+
+import listener from '../../scripts/sockets'
+import { LOADING_SCREEN } from '../../scripts/actions'
+import { setCurrentGame } from '../../actions'
 
 class Home extends Component {
   constructor () {
@@ -11,6 +17,19 @@ class Home extends Component {
     this.state = {
       username: sessionStorage.getItem('username')
     }
+  }
+
+  componentDidMount () {
+    const { dispatch } = this.props
+    listener()
+      .on(LOADING_SCREEN, ({ roomId, players }) => {
+        console.log('loading screen', roomId, players)
+        dispatch(setCurrentGame({
+          players,
+          loading: true
+        }))
+        browserHistory.push(`/${roomId}`)
+      })
   }
 
   handleNameChange (username) {
@@ -32,7 +51,8 @@ class Home extends Component {
 }
 
 Home.propTypes = {
-  children: PropTypes.node.isRequired
+  children: PropTypes.node.isRequired,
+  dispatch: PropTypes.func.isRequired
 }
 
-export default Home
+export default connect()(Home)

@@ -1,7 +1,7 @@
 import React, { Component, PropTypes } from 'react'
 
 import listener, { joinQueue } from '../../../scripts/sockets'
-import { QUEUE_JOINED } from '../../../scripts/actions'
+import { QUEUE_JOINED, START_COUNTDOWN } from '../../../scripts/actions'
 
 class Menu extends Component {
   constructor () {
@@ -9,10 +9,15 @@ class Menu extends Component {
 
     this.handleReset = this.handleReset.bind(this)
     this.joinQueue = this.joinQueue.bind(this)
+    this.startCooldown = this.startCooldown.bind(this)
 
     this.state = {
-      queueJoined: false
+      queueJoined: false,
+      gameFound: false,
+      cooldown: 5
     }
+
+    this.startingScreen = false
   }
 
   componentDidMount () {
@@ -23,6 +28,28 @@ class Menu extends Component {
           queueJoined: true
         })
       })
+      .on(START_COUNTDOWN, () => {
+        console.log('start countdown')
+        this.startingScreen = true
+        this.setState({
+          queueJoined: false,
+          gameFound: true
+        }, () => setTimeout(this.startCooldown, 1000))
+      })
+  }
+
+  componentWillUnmount () {
+    this.startingScreen = false
+  }
+
+  startCooldown () {
+    const { cooldown } = this.state
+    if (cooldown > 0 && this.startingScreen) {
+      this.setState({
+        cooldown: cooldown - 1
+      })
+      setTimeout(this.startCooldown, 1000)
+    }
   }
 
   handleReset () {
@@ -32,12 +59,13 @@ class Menu extends Component {
   }
 
   joinQueue () {
-    joinQueue()
+    const { username } = this.props
+    joinQueue(username)
   }
 
   render () {
     const { username } = this.props
-    const { queueJoined } = this.state
+    const { queueJoined, gameFound, cooldown } = this.state
     return (
       <div>
         <div>
@@ -46,6 +74,7 @@ class Menu extends Component {
         Menu
         <button onClick={this.joinQueue}>Play</button>
         {queueJoined && <div>Queue Joined</div>}
+        {gameFound && <div>Game Found! Starting in {cooldown}</div>}
       </div>
     )
   }

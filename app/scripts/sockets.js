@@ -36,6 +36,6 @@ export function armyMove (patrol, from, to, number) {
 }
 
 // ------ MENU -------
-export function joinQueue () {
-  ws.send(createRequest(QUEUE_JOINED))
+export function joinQueue (username) {
+  ws.send(createRequest(QUEUE_JOINED, { username }))
 }

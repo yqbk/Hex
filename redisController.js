@@ -3,6 +3,7 @@ const bluebird = require('bluebird')
 const uuid = require('uuid')
 const mapFile = require('./static/map.json')
 const socketServer = require('./socketServer')
+const actions = require('./app/scripts/actions')
 
 bluebird.promisifyAll(redis.RedisClient.prototype)
 bluebird.promisifyAll(redis.Multi.prototype)
@@ -29,6 +30,7 @@ const randomColor = () => {
 // redis databases
 // 0 - user
 // 1 - hex
+// 2 - rooms
 
 async function getMap (req, res) {
   try {
@@ -323,9 +325,39 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send)
   })
 }
 
+async function startDuel (player1Id, player2Id) {
+  try {
+    const roomId = uuid.v4()
+    const player1 = socketServer.getPlayer(player1Id)
+    const player2 = socketServer.getPlayer(player2Id)
+
+    console.log('roomId', roomId)
+
+    await client.select(2)
+    await client.setAsync(roomId, JSON.stringify({
+      players: [{ id: player1.id, status: 'joined' }, { id: player2.id, status: 'joined' }]
+    }))
+    socketServer.send(player1.id, [{ type: actions.START_COUNTDOWN }])
+    socketServer.send(player2.id, [{ type: actions.START_COUNTDOWN }])
+
+    await new Promise(resolve => setTimeout(resolve, 5000))
+
+    const players = [
+      { id: player1.id, username: player1.username, status: 'joined' },
+      { id: player2.id, username: player2.username, status: 'joined' }
+    ]
+    socketServer.send(player1.id, [{ type: actions.LOADING_SCREEN, payload: { roomId, players } }])
+    socketServer.send(player2.id, [{ type: actions.LOADING_SCREEN, payload: { roomId, players } }])
+
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 module.exports = {
   getMap,
   register,
   armyMove,
-  stopMove
+  stopMove,
+  startDuel
 }

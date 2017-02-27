@@ -1,16 +1,31 @@
+const _ = require('lodash')
 const WebSocket = require('ws')
-const uuid = require('uuid')
 
 let players = []
+
+const getPlayer = id => _.find(players, { id })
+
+function addPlayer (id, socket, params) {
+  players = [...players.filter(p => p.id !== id), { id, socket, ...params }]
+}
 
 function emit (list) {
   players.forEach(({ socket }) => {
     try {
-      socket.send(JSON.stringify(list))
+      if (socket.readyState === 1) {
+        socket.send(JSON.stringify(list))
+      }
     } catch (err) {
       console.log(err)
     }
   })
+}
+
+function send (playerId, data) {
+  const { socket } = _.find(players, { id: playerId }) || {}
+  if (socket && socket.readyState === 1) {
+    socket.send(JSON.stringify(data))
+  }
 }
 
 function listener (server) {
@@ -18,24 +33,13 @@ function listener (server) {
   const ws = new WebSocket.Server({ server })
 
   ws.on('connection', (socket) => {
-    const newPlayerId = uuid.v4()
-    players.push({ id: newPlayerId, socket })
-
     socket.on('message', (message) => {
       const { id, type, payload } = JSON.parse(message)
-      callbacks[type](id, payload, (list) => {
-        try {
-          if (socket.readyState === 1) {
-            socket.send(JSON.stringify(list))
-          }
-        } catch (err) {
-          console.error(err)
-        }
-      })
+      callbacks[type](id, payload, socket)
     })
 
     socket.on('close', () => {
-      players = players.filter(player => player.id !== newPlayerId)
+      // players = players.filter(player => player.id !== newPlayerId)
     })
   })
 
@@ -48,6 +52,9 @@ function listener (server) {
 }
 
 module.exports = {
+  getPlayer,
   listener,
-  emit
+  emit,
+  send,
+  addPlayer
 }

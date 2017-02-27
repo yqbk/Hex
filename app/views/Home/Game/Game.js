@@ -1,11 +1,31 @@
-import React from 'react'
+import React, { Component, PropTypes } from 'react'
+import { connect } from 'react-redux'
 
-function Game () {
-  return (
-    <div>
-      Game
-    </div>
-  )
+import Loading from './Loading/Loading'
+
+class Game extends Component {
+  componentDidMount () {
+
+  }
+
+  render () {
+    const { game } = this.props
+    return (
+      <div>
+        {game.loading && <Loading game={game} />}
+      </div>
+    )
+  }
 }
 
-export default Game
+Game.propTypes = {
+  game: PropTypes.object.isRequired
+}
+
+function mapStateToProps (state) {
+  return {
+    game: state.currentGame || {}
+  }
+}
+
+export default connect(mapStateToProps)(Game)

@@ -1,7 +1,8 @@
-import { NOTIFY, DELETE_NOTIFICATION } from './actions'
+import { NOTIFY, DELETE_NOTIFICATION, SET_CURRENT_GAME } from './actions'
 
 const initialState = {
-  messageQueue: []
+  messageQueue: [],
+  currentGame: {}
 }
 
 export default function reducer (state = initialState, action) {
@@ -21,6 +22,11 @@ export default function reducer (state = initialState, action) {
       return {
         ...state,
         messageQueue: state.messageQueue.filter(item => item.id !== action.payload.id)
+      }
+    case SET_CURRENT_GAME:
+      return {
+        ...state,
+        currentGame: action.payload.currentGame
       }
     default:
       return state
