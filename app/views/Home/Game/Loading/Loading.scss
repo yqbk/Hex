@@ -1,6 +1,6 @@
 .container {
   position: fixed;
-  width: 80%;
+  width: 60%;
   height: 100px;
   top: 50%;
   left: 50%;
@@ -35,10 +35,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid black;
   width: 150px;
   height: 150px;
   border-radius: 75px;
+
+  &:first-child {
+    background: red;
+  }
+
+  &:nth-child(2) {
+    background: deepskyblue;
+  }
+
 }
 
 .vs {
@@ -47,4 +55,8 @@
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

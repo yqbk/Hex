@@ -1,8 +1,10 @@
 import React, { PropTypes } from 'react'
 
+// import minimap from '../../../../../static/images/minimap.svg'
 import style from './Loading.scss'
 
 function Loading ({ game }) {
+  // todo minimap error
   return (
     <div>
     <div className={style.container}>
@@ -18,7 +20,10 @@ function Loading ({ game }) {
       }
 
     </div>
-    <div className={style.vs}>vs.</div>
+    <div className={style.vs}>
+       {/*<img src={minimap} alt="minimap" />*/}
+      vs.
+    </div>
     </div>
   )
 }
