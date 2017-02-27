@@ -3,6 +3,8 @@ import React, { Component, PropTypes } from 'react'
 import listener, { joinQueue } from '../../../scripts/sockets'
 import { QUEUE_JOINED, START_COUNTDOWN } from '../../../scripts/actions'
 
+import style from './Menu.scss'
+
 class Menu extends Component {
   constructor () {
     super()
@@ -67,11 +69,11 @@ class Menu extends Component {
     const { username } = this.props
     const { queueJoined, gameFound, cooldown } = this.state
     return (
-      <div>
+      <div className={style.container}>
         <div>
-          Hello {username}! <button onClick={this.handleReset}>Reset name</button>
+          Hello <b>{username}</b>!
         </div>
-        Menu
+        <button onClick={this.handleReset}>Reset name</button>
         <button onClick={this.joinQueue}>Play</button>
         {queueJoined && <div>Queue Joined</div>}
         {gameFound && <div>Game Found! Starting in {cooldown}</div>}

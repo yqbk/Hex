@@ -1,0 +1,50 @@
+.container {
+  position: fixed;
+  width: 80%;
+  height: 100px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  & > div > div {
+    display: flex;
+    flex-direction: column;
+
+    & > span:first-child {
+      font-size: 40px;
+    }
+    & > span:nth-child(2) {
+      font-size: 20px;
+      color: darkgray;
+    }
+    &:nth-child(2) {
+      align-items: flex-end;
+    }
+  }
+
+  & > div:nth-child(2) > div > span {
+    text-align: right;
+  }
+}
+
+.arms {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid black;
+  width: 150px;
+  height: 150px;
+  border-radius: 75px;
+}
+
+.vs {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 40px;
+}

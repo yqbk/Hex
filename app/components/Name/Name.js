@@ -1,6 +1,6 @@
 import React, { Component, PropTypes } from 'react'
 
-import style from './Name.scss'
+import style from '../../views/Home/Menu/Menu.scss'
 
 class Name extends Component {
   constructor () {
@@ -8,15 +8,22 @@ class Name extends Component {
 
     this.handleChange = this.handleChange.bind(this)
     this.handleOK = this.handleOK.bind(this)
+    this.handleKeyDown = this.handleKeyDown.bind(this)
 
     this.state = {
       name
     }
   }
 
-  handleChange () {
+  handleChange (e) {
     this.state = {
-      name: this.refName.innerHTML
+      name: e.currentTarget.value
+    }
+  }
+
+  handleKeyDown (e) {
+    if (e.keyCode === 13) {
+      this.handleOK()
     }
   }
 
@@ -31,10 +38,8 @@ class Name extends Component {
     return (
       <div className={style.container}>
         <span>Enter your name</span>
-        <div>
-        <div ref={(e) => { this.refName = e }} onInput={this.handleChange} contentEditable />
-          <button onClick={this.handleOK}>OK</button>
-        </div>
+        <input className={style.input} onChange={this.handleChange} onKeyDown={this.handleKeyDown} />
+        <button onClick={this.handleOK}>OK</button>
       </div>
     )
   }
