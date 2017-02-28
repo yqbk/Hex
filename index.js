@@ -54,6 +54,9 @@ socketServer.listener(server)
     checkQueue()
     console.log(playerId)
   })
+  .on(actions.MAP_LOADED, (id, { roomId }) => {
+    redisController.playerLoadedMap(id, roomId)
+  })
   .on('REGISTER', (id, { name, hexId }, send) => {
     redisController.register(id, { name, hexId }, send)
   })

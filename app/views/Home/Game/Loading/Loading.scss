@@ -9,26 +9,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  & > div > div {
-    display: flex;
-    flex-direction: column;
-
-    & > span:first-child {
-      font-size: 40px;
-    }
-    & > span:nth-child(2) {
-      font-size: 20px;
-      color: darkgray;
-    }
-    &:nth-child(2) {
-      align-items: flex-end;
-    }
-  }
-
-  & > div:nth-child(2) > div > span {
-    text-align: right;
-  }
 }
 
 .arms {
@@ -45,6 +25,26 @@
 
   &:nth-child(2) {
     background: deepskyblue;
+  }
+
+  & > div {
+    display: flex;
+    flex-direction: column;
+
+    & > span:first-child {
+      font-size: 40px;
+    }
+    & > span:nth-child(2) {
+      font-size: 20px;
+      color: darkgray;
+    }
+    &:nth-child(2) {
+      align-items: flex-end;
+    }
+  }
+
+  &:nth-child(2) > div > span {
+    text-align: right;
   }
 
 }

@@ -10,8 +10,6 @@ bluebird.promisifyAll(redis.Multi.prototype)
 const client = redis.createClient(process.env.REDIS_URL)
 const lock = require('redis-lock')(client)
 
-const emit = socketServer.emit
-
 client.on('connect', async () => {
   await client.flushall()
   console.log('Redis databases cleared')
@@ -55,7 +53,7 @@ async function spawnArmy (hexId) {
       const nexArmy = hexArmy + 10
       hex.army = nexArmy > 100 ? hexArmy : nexArmy
       await client.setAsync(hexId, JSON.stringify(hex))
-      emit([{
+      socketServer.emit([{
         type: 'CHANGE_HEX_ARMY_VALUE',
         payload: { hexId, armyValue: hex.army }
       }])
@@ -92,7 +90,7 @@ async function register (id, { name, hexId }, send) {
 
       spawnArmy(hexId)
 
-      emit([{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
+      socketServer.emit([{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
       send([{ type: 'REGISTER', payload: { playerId } }])
     } catch ({ message }) {
       send([{ type: 'ERROR_MESSAGE', payload: { message } }])
@@ -196,7 +194,7 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
             client.setAsync(nextHex.id, JSON.stringify(nextHex))
           ])
 
-          emit([
+          socketServer.emit([
             {
               type: 'CHANGE_HEX_ARMY_VALUE',
               payload: { hexId: from, armyValue: hexFrom.army, player: hexFrom.owner, moveId: null }
@@ -225,7 +223,10 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
             defenderHexId: nextHex.id
           }, send)
 
-          emit([{ type: 'SET_BATTLE', payload: { attackerId: hexFrom.id, defenderId: nextHex.id, state: true } }])
+          socketServer.emit([{
+            type: 'SET_BATTLE',
+            payload: { attackerId: hexFrom.id, defenderId: nextHex.id, state: true }
+          }])
         }
       }
     } catch (err) {
@@ -264,7 +265,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send)
           client.setAsync(defenderHexId, JSON.stringify(defenderHex))
         ])
 
-        emit([
+        socketServer.emit([
           {
             type: 'CHANGE_HEX_ARMY_VALUE',
             payload: { hexId: attackerHexId, armyValue: attackerHexArmy }
@@ -291,7 +292,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send)
           moveId
         }, attackerHex.id, send)
 
-        emit([
+        socketServer.emit([
           {
             type: 'SET_BATTLE',
             payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
@@ -303,7 +304,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send)
           client.setAsync(defenderHexId, JSON.stringify(defenderHex))
         ])
 
-        emit([
+        socketServer.emit([
           {
             type: 'CHANGE_HEX_ARMY_VALUE',
             payload: { hexId: attackerHexId, armyValue: attackerHex.army }
@@ -331,24 +332,45 @@ async function startDuel (player1Id, player2Id) {
     const player1 = socketServer.getPlayer(player1Id)
     const player2 = socketServer.getPlayer(player2Id)
 
-    console.log('roomId', roomId)
+    const players = [
+      { id: player1.id, username: player1.username, status: 'joined' },
+      { id: player2.id, username: player2.username, status: 'joined' }
+    ]
+
+    const status = 'loading'
+
+    const room = { roomId, players, status }
 
     await client.select(2)
-    await client.setAsync(roomId, JSON.stringify({
-      players: [{ id: player1.id, status: 'joined' }, { id: player2.id, status: 'joined' }]
-    }))
+    await client.setAsync(roomId, JSON.stringify(room))
     socketServer.send(player1.id, [{ type: actions.START_COUNTDOWN }])
     socketServer.send(player2.id, [{ type: actions.START_COUNTDOWN }])
 
     await new Promise(resolve => setTimeout(resolve, 5000))
 
-    const players = [
-      { id: player1.id, username: player1.username, status: 'joined' },
-      { id: player2.id, username: player2.username, status: 'joined' }
-    ]
-    socketServer.send(player1.id, [{ type: actions.LOADING_SCREEN, payload: { roomId, players } }])
-    socketServer.send(player2.id, [{ type: actions.LOADING_SCREEN, payload: { roomId, players } }])
+    socketServer.send(player1.id, [{ type: actions.LOADING_SCREEN, payload: { room } }])
+    socketServer.send(player2.id, [{ type: actions.LOADING_SCREEN, payload: { room } }])
+  } catch (err) {
+    console.error(err)
+  }
+}
 
+async function playerLoadedMap (id, roomId) {
+  try {
+    await client.select(2)
+    const room = JSON.parse(await client.getAsync(roomId))
+
+    room.players = room.players.map(player => (
+      player.id === id
+        ? Object.assign({}, player, { status: 'loaded' })
+        : player
+    ))
+
+    // const notLoadedPlayers = room.players.filter(player => player.status !== 'loaded')
+
+    await client.setAsync(roomId, JSON.stringify(room))
+
+    socketServer.emit([{ type: actions.MAP_LOADED, payload: { room } }])
   } catch (err) {
     console.error(err)
   }
@@ -359,5 +381,6 @@ module.exports = {
   register,
   armyMove,
   stopMove,
-  startDuel
+  startDuel,
+  playerLoadedMap
 }

@@ -1,4 +1,4 @@
-import { QUEUE_JOINED } from './actions'
+import { QUEUE_JOINED, MAP_LOADED } from './actions'
 
 const protocol = (window.location.protocol === 'https:') ? 'wss:' : 'ws:'
 const ws = new WebSocket(`${protocol}//${location.host}`, 'echo-protocol')
@@ -26,7 +26,7 @@ function createRequest (type, payload) {
   return JSON.stringify({ id: sessionStorage.getItem('id'), type, payload })
 }
 
-// ------ GAME -------
+
 export function register (name, hexId) {
   ws.send(createRequest('REGISTER', { name, hexId }))
 }
@@ -35,7 +35,10 @@ export function armyMove (patrol, from, to, number) {
   ws.send(createRequest('ARMY_MOVE', { from, to, number, patrol }))
 }
 
-// ------ MENU -------
 export function joinQueue (username) {
   ws.send(createRequest(QUEUE_JOINED, { username }))
+}
+
+export function mapLoaded (roomId) {
+  ws.send(createRequest(MAP_LOADED, { roomId }))
 }

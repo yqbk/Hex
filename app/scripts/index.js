@@ -24,6 +24,24 @@ const isInside = ({ x, y }, { startX, startY, endX, endY }, scale) => (
   Math.max(startY, endY) >= scale * y
 )
 
+export function preload () {
+  return new Promise((resolve) => {
+    PIXI.loader
+      .add('army', 'images/army.png')
+      .add('battle', 'images/battle.png')
+      .add('border', 'images/border.png')
+      .add('castle', 'images/castle.svg')
+      .add('grass', 'images/grass.png')
+      .add('sand', 'images/sand.png')
+      .add('trees', 'images/trees.png')
+      .add('water', 'images/water.png')
+      .once('complete', () => {
+        resolve()
+      })
+      .load()
+  })
+}
+
 export default function init () {
   const map = document.getElementById('map')
   const WIDTH = window.innerWidth

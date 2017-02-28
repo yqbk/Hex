@@ -22,13 +22,9 @@ class Home extends Component {
   componentDidMount () {
     const { dispatch } = this.props
     listener()
-      .on(LOADING_SCREEN, ({ roomId, players }) => {
-        console.log('loading screen', roomId, players)
-        dispatch(setCurrentGame({
-          players,
-          loading: true
-        }))
-        browserHistory.push(`/${roomId}`)
+      .on(LOADING_SCREEN, ({ room }) => {
+        dispatch(setCurrentGame(room))
+        browserHistory.push(`/${room.roomId}`)
       })
   }
 

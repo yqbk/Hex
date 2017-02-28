@@ -1,31 +1,41 @@
-import React, { PropTypes } from 'react'
+import React, { Component, PropTypes } from 'react'
 
-// import minimap from '../../../../../static/images/minimap.svg'
+import { preload } from '../../../../scripts/index'
+import { mapLoaded } from '../../../../scripts/sockets'
+
 import style from './Loading.scss'
 
-function Loading ({ game }) {
-  // todo minimap error
-  return (
-    <div>
-    <div className={style.container}>
-      {
-        game.players.map(player => (
-          <div className={style.arms}>
-            <div className={style.player} key={player.username}>
-              <span>{player.username}</span>
-              <span>{player.status}</span>
-            </div>
-          </div>
-        ))
-      }
+class Loading extends Component {
+  componentDidMount () {
+    const { game } = this.props
+    preload()
+      .then(() => {
+        mapLoaded(game.roomId)
+      })
+  }
 
-    </div>
-    <div className={style.vs}>
-       {/*<img src={minimap} alt="minimap" />*/}
-      vs.
-    </div>
-    </div>
-  )
+  render () {
+    const { game } = this.props
+    return (
+      <div>
+        <div className={style.container}>
+          {
+            game.players.map(player => (
+              <div key={player.username} className={style.arms}>
+                <div className={style.player}>
+                  <span>{player.username}</span>
+                  <span>{player.status}</span>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+        <div className={style.vs}>
+          vs.
+        </div>
+      </div>
+    )
+  }
 }
 
 Loading.propTypes = {
