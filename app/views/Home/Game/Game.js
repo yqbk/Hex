@@ -2,6 +2,7 @@ import React, { Component, PropTypes } from 'react'
 import { connect } from 'react-redux'
 
 import Loading from './Loading/Loading'
+import Map from './Map/Map'
 
 import listener from '../../../scripts/sockets'
 import { MAP_LOADED } from '../../../scripts/actions'
@@ -20,7 +21,11 @@ class Game extends Component {
     const { game } = this.props
     return (
       <div>
-        {game.status === 'loading' && <Loading game={game} />}
+        {
+          game.status === 'loading'
+            ? <Loading game={game} />
+            : <Map />
+        }
       </div>
     )
   }

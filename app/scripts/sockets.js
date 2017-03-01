@@ -23,7 +23,7 @@ export default function listener () {
 }
 
 function createRequest (type, payload) {
-  return JSON.stringify({ id: sessionStorage.getItem('id'), type, payload })
+  return JSON.stringify({ id: sessionStorage.getItem('id'), roomId: sessionStorage.getItem('roomId'), type, payload })
 }
 
 

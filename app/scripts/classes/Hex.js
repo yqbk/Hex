@@ -68,12 +68,12 @@ class Hex {
     this.neighbours = neighbours
     this.owner = owner
 
-    this.hex = new PIXI.Sprite(PIXI.Texture.fromImage(`images/${type}.png`))
+    this.hex = new PIXI.Sprite(PIXI.loader.resources[type].texture)
     this.initializeItem(this.hex, this.x, this.y, 0.5, 'hexes')
     this.container.addChild(this.hex)
 
     this.borders = _.range(0, 6).map((index) => {
-      const border = new PIXI.Sprite(PIXI.Texture.fromImage('images/border.png'))
+      const border = new PIXI.Sprite(PIXI.loader.resources.border.texture)
       this.initializeItem(border, this.x, this.y, 0.5, 'borders')
       border.rotation = index * (Math.PI / 3)
       border.visible = false
@@ -82,7 +82,7 @@ class Hex {
     })
 
     this.battleIcons = _.range(0, 6).map((index) => {
-      const battleIcon = new PIXI.Sprite(PIXI.Texture.fromImage('images/battle.png'))
+      const battleIcon = new PIXI.Sprite(PIXI.loader.resources.battle.texture)
       const [inX, inY] = [this.x - 20, this.y - 38]
       const angle = index * (Math.PI / 3)
       const battleIconX = (((inX - this.x) * Math.cos(angle)) - ((inY - this.y) * Math.sin(angle))) + this.x
@@ -94,7 +94,7 @@ class Hex {
     })
 
     if (castle) {
-      this.castle = new PIXI.Sprite(PIXI.Texture.fromImage('images/castle.svg'))
+      this.castle = new PIXI.Sprite(PIXI.loader.resources.castle.texture)
       this.initializeItem(this.castle, this.hex.x, this.hex.y, 0.1, 'castles')
       this.container.addChild(this.castle)
     }
@@ -104,7 +104,7 @@ class Hex {
     this.armyNumber.visible = !!army
     this.container.addChild(this.armyNumber)
 
-    this.armyIcon = new PIXI.Sprite(PIXI.Texture.fromImage('images/army.png'))
+    this.armyIcon = new PIXI.Sprite(PIXI.loader.resources.army.texture)
     this.armyIcon.visible = !!army
     if (owner) {
       this.armyIcon.tint = `0x${owner.color}`

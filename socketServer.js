@@ -1,28 +1,35 @@
 const _ = require('lodash')
 const WebSocket = require('ws')
 
-let players = []
+const players = {}
 
-const getPlayer = id => _.find(players, { id })
+const getPlayer = id => players[id] // _.find(players, { id })
 
-function addPlayer (id, socket, params) {
-  players = [...players.filter(p => p.id !== id), { id, socket, ...params }]
+function addPlayer (id, params) {
+  players[id] = Object.assign({ id }, getPlayer(id) || {}, params)
+  // const player = getPlayer(id) || {}
+  // players = [...players.filter(p => p.id !== id), Object.assign({ id }, player, params)]
 }
 
-function emit (list) {
-  players.forEach(({ socket }) => {
-    try {
-      if (socket.readyState === 1) {
-        socket.send(JSON.stringify(list))
+function emit (client) {
+  return async (roomId, list) => {
+    await client.select(2)
+    const room = JSON.parse(await client.getAsync(roomId))
+    const playersInRoom = room.players.map(({ id }) => getPlayer(id))
+    playersInRoom.forEach(({ socket }) => {
+      try {
+        if (socket.readyState === 1) {
+          socket.send(JSON.stringify(list))
+        }
+      } catch (err) {
+        console.log(err)
       }
-    } catch (err) {
-      console.log(err)
-    }
-  })
+    })
+  }
 }
 
 function send (playerId, data) {
-  const { socket } = _.find(players, { id: playerId }) || {}
+  const { socket } = getPlayer(playerId) || {}
   if (socket && socket.readyState === 1) {
     socket.send(JSON.stringify(data))
   }
@@ -34,8 +41,8 @@ function listener (server) {
 
   ws.on('connection', (socket) => {
     socket.on('message', (message) => {
-      const { id, type, payload } = JSON.parse(message)
-      callbacks[type](id, payload, socket)
+      const { id, roomId, type, payload } = JSON.parse(message)
+      callbacks[type](id, roomId, payload, socket)
     })
 
     socket.on('close', () => {
@@ -51,10 +58,10 @@ function listener (server) {
   }
 }
 
-module.exports = {
+module.exports = client => ({
   getPlayer,
   listener,
-  emit,
+  emit: emit(client),
   send,
   addPlayer
-}
+})

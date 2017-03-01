@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 
-import init from '../../scripts/index'
+import init from '../../../../scripts/index'
 
 class Map extends Component {
 
@@ -10,8 +10,7 @@ class Map extends Component {
 
   render () {
     return (
-      <div id="map" style={{ color: 0xFFFFFF }}>
-      </div>
+      <div id="map" style={{ color: 0xFFFFFF }} />
     )
   }
 }

@@ -5,7 +5,7 @@ const config = require('./webpack.config')
 const webpack = require('webpack')
 const uuid = require('uuid')
 const redisController = require('./redisController')
-const socketServer = require('./socketServer')
+const socketServer = require('./socketServer')()
 const actions = require('./app/scripts/actions')
 
 const port = process.env.PORT || 5000
@@ -44,24 +44,25 @@ function checkQueue () {
 }
 
 socketServer.listener(server)
-  .on(actions.QUEUE_JOINED, (id, { username }, socket) => {
+  .on(actions.QUEUE_JOINED, (id, roomId, { username }, socket) => {
     const playerId = id || uuid.v4()
     if (!playersQueue.includes(playerId)) {
       playersQueue = [...playersQueue, playerId]
-      socketServer.addPlayer(playerId, socket, { username })
+      socketServer.addPlayer(playerId, { socket, username })
       socketServer.send(playerId, [{ type: actions.QUEUE_JOINED, payload: { id: playerId } }])
     }
     checkQueue()
-    console.log(playerId)
   })
-  .on(actions.MAP_LOADED, (id, { roomId }) => {
+  .on(actions.MAP_LOADED, (id, roomId) => {
     redisController.playerLoadedMap(id, roomId)
   })
-  .on('REGISTER', (id, { name, hexId }, send) => {
-    redisController.register(id, { name, hexId }, send)
+  .on('REGISTER', (id, roomId, { name, hexId }) => {
+    redisController.register(id, roomId, { name, hexId })
   })
-  .on('ARMY_MOVE', (id, { from, to, number, patrol }, send) => {
+  .on('ARMY_MOVE', (id, roomId, { from, to, number, patrol }) => {
+    const start = +new Date()
     const moveId = uuid.v1()
-    redisController.stopMove(id, { hexId: from }, send)
-    redisController.armyMove(id, { from, to, number, patrol, moveId }, from, send)
+    redisController.stopMove(id, roomId, { hexId: from })
+    redisController.armyMove(id, roomId, { from, to, number, patrol, moveId }, from)
+    console.log('ARMY_MOVE', +new Date() - start)
   })

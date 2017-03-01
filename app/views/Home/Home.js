@@ -24,6 +24,7 @@ class Home extends Component {
     listener()
       .on(LOADING_SCREEN, ({ room }) => {
         dispatch(setCurrentGame(room))
+        sessionStorage.setItem('roomId', room.roomId)
         browserHistory.push(`/${room.roomId}`)
       })
   }

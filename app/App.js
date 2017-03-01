@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 
-import Map from './views/Map/Map'
+import Map from './views/Home/Game/Map/Map'
 import Notifications from './components/Notifications/Notifications'
 
 class App extends Component {

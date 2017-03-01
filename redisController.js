@@ -2,13 +2,14 @@ const redis = require('redis')
 const bluebird = require('bluebird')
 const uuid = require('uuid')
 const mapFile = require('./static/map.json')
-const socketServer = require('./socketServer')
 const actions = require('./app/scripts/actions')
 
 bluebird.promisifyAll(redis.RedisClient.prototype)
 bluebird.promisifyAll(redis.Multi.prototype)
 const client = redis.createClient(process.env.REDIS_URL)
 const lock = require('redis-lock')(client)
+
+const socketServer = require('./socketServer')(client)
 
 client.on('connect', async () => {
   await client.flushall()
@@ -44,7 +45,7 @@ async function getMap (req, res) {
   }
 }
 
-async function spawnArmy (hexId) {
+async function spawnArmy (roomId, hexId) {
   lock('armyAccess', async (done) => {
     try {
       await client.select(1)
@@ -53,13 +54,13 @@ async function spawnArmy (hexId) {
       const nexArmy = hexArmy + 10
       hex.army = nexArmy > 100 ? hexArmy : nexArmy
       await client.setAsync(hexId, JSON.stringify(hex))
-      socketServer.emit([{
+      await socketServer.emit(roomId, [{
         type: 'CHANGE_HEX_ARMY_VALUE',
         payload: { hexId, armyValue: hex.army }
       }])
 
       setTimeout(() => {
-        spawnArmy(hexId)
+        spawnArmy(roomId, hexId)
       }, 5000)
     } catch (err) {
       console.error(err)
@@ -68,7 +69,7 @@ async function spawnArmy (hexId) {
   })
 }
 
-async function register (id, { name, hexId }, send) {
+async function register (id, roomId, { name, hexId }) {
   lock('armyAccess', async (done) => {
     const playerId = uuid.v4()
     const player = { id: playerId, name, color: randomColor() }
@@ -88,12 +89,12 @@ async function register (id, { name, hexId }, send) {
 
       await client.setAsync(hexId, JSON.stringify(hex))
 
-      spawnArmy(hexId)
+      spawnArmy(roomId, hexId)
 
-      socketServer.emit([{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
-      send([{ type: 'REGISTER', payload: { playerId } }])
+      await socketServer.emit(roomId, [{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
+      socketServer.send(id, [{ type: 'REGISTER', payload: { playerId } }])
     } catch ({ message }) {
-      send([{ type: 'ERROR_MESSAGE', payload: { message } }])
+      socketServer.send(id, [{ type: 'ERROR_MESSAGE', payload: { message } }])
     }
     done()
   })
@@ -122,26 +123,28 @@ async function getNextHex ({ hexFrom, hexTo }) {
   return {}
 }
 
-async function stopMove (id, { hexId }, send) {
+async function stopMove (id, roomId, { hexId }) {
+  const start = +new Date()
   try {
     await client.select(1)
     const hex = JSON.parse(await client.getAsync(hexId))
     if (hex.owner && hex.owner.id === id && hex.moveId) {
       const { timeoutId, destination } = moves[hex.moveId] || {}
       clearTimeout(timeoutId)
-      send([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
+      socketServer.send(id, [{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
       delete moves[hex.moveId]
     }
   } catch (err) {
     console.error('stopMove', err)
   }
+  console.log('stopMove', +new Date() - start)
 }
 
-async function armyMove (id, { from, to, number, patrol, moveId }, beginning, send) {
+async function armyMove (id, roomId, { from, to, number, patrol, moveId }, beginning) {
+  const start = +new Date()
   lock('armyAccess', async (done) => {
     try {
       await client.select(1)
-
       const [hexFrom, hexTo] = (await Promise.all([
         client.getAsync(from),
         client.getAsync(to)
@@ -158,7 +161,7 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
 
         if (!nextHexOwner || nextHexOwner.id === id || (nextHexOwner && !nextHexArmy)) {
           if (nextHex.castle && !nextHex.owner) {
-            spawnArmy(nextHex.id)
+            spawnArmy(id, nextHex.id)
           }
 
           nextHex.owner = hexFrom.owner
@@ -168,12 +171,12 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
 
           const timeoutId = (
             (nextHex.id !== hexTo.id && setTimeout(() => {
-              armyMove(id, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol, moveId }, beginning,
-                send)
+              armyMove(id, roomId, { from: nextHex.id, to: hexTo.id, number: number || armyToMove, patrol, moveId },
+                beginning)
             }, 500)) ||
             (nextHex.id === hexTo.id && patrol && setTimeout(() => {
-              armyMove(id, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol, moveId },
-                nextHex.id, send)
+              armyMove(id, roomId, { from: nextHex.id, to: beginning, number: number || armyToMove, patrol, moveId },
+                nextHex.id)
             }, 500)) || null
           )
 
@@ -184,9 +187,9 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
           if (timeoutId) {
             moves[moveId] = { hexId, timeoutId, playerId: id, destination }
             nextHex.moveId = moveId
-            send([{ type: 'GET_DESTINATION', payload: { hexId, destination } }])
+            socketServer.send(id, [{ type: 'GET_DESTINATION', payload: { hexId, destination } }])
           } else {
-            send([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
+            socketServer.send(id, [{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
           }
 
           await Promise.all([
@@ -194,7 +197,7 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
             client.setAsync(nextHex.id, JSON.stringify(nextHex))
           ])
 
-          socketServer.emit([
+          await socketServer.emit(roomId, [
             {
               type: 'CHANGE_HEX_ARMY_VALUE',
               payload: { hexId: from, armyValue: hexFrom.army, player: hexFrom.owner, moveId: null }
@@ -213,17 +216,17 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
           // stopMove(nextHexOwner.id, { hexId: nextHex.id }, send)
           const { hexId, destination } = moves[moveId] || {}
           if (hexId) {
-            send([{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
+            socketServer.send(id, [{ type: 'CLEAR_DESTINATION', payload: { hexId, destination } }])
           }
 
-          battle({ // eslint-disable-line
+          battle(roomId, { // eslint-disable-line
             attackerId: hexFromOwner.id,
             defenderId: nextHexOwner.id,
             attackerHexId: hexFrom.id,
             defenderHexId: nextHex.id
-          }, send)
+          })
 
-          socketServer.emit([{
+          await socketServer.emit(roomId, [{
             type: 'SET_BATTLE',
             payload: { attackerId: hexFrom.id, defenderId: nextHex.id, state: true }
           }])
@@ -234,9 +237,10 @@ async function armyMove (id, { from, to, number, patrol, moveId }, beginning, se
     }
     done()
   })
+  console.log('armyMove', +new Date() - start)
 }
 
-function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send) {
+function battle (roomId, { attackerId, defenderId, attackerHexId, defenderHexId }) {
   lock('armyAccess', async (done) => {
     try {
       await client.select(1)
@@ -265,7 +269,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send)
           client.setAsync(defenderHexId, JSON.stringify(defenderHex))
         ])
 
-        socketServer.emit([
+        await socketServer.emit(roomId, [
           {
             type: 'CHANGE_HEX_ARMY_VALUE',
             payload: { hexId: attackerHexId, armyValue: attackerHexArmy }
@@ -276,7 +280,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send)
           }
         ])
 
-        setTimeout(() => battle({ attackerId, defenderId, attackerHexId, defenderHexId }, send), 1000)
+        setTimeout(() => battle(roomId, { attackerId, defenderId, attackerHexId, defenderHexId }), 1000)
       } else if (attackerHexArmy > defenderHexArmy || attackerHex.owner.id === defenderHex.owner.id) {
         defenderHex.owner = attackerHex.owner
 
@@ -286,13 +290,13 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send)
         ])
 
         const moveId = uuid.v1()
-        armyMove(attackerHex.owner.id, {
+        armyMove(attackerHex.owner.id, roomId, {
           from: attackerHex.id,
           to: defenderHex.id,
           moveId
-        }, attackerHex.id, send)
+        }, attackerHex.id)
 
-        socketServer.emit([
+        await socketServer.emit(roomId, [
           {
             type: 'SET_BATTLE',
             payload: { attackerId: attackerHexId, defenderId: defenderHexId, state: false }
@@ -304,7 +308,7 @@ function battle ({ attackerId, defenderId, attackerHexId, defenderHexId }, send)
           client.setAsync(defenderHexId, JSON.stringify(defenderHex))
         ])
 
-        socketServer.emit([
+        await socketServer.emit(roomId, [
           {
             type: 'CHANGE_HEX_ARMY_VALUE',
             payload: { hexId: attackerHexId, armyValue: attackerHex.army }
@@ -331,6 +335,9 @@ async function startDuel (player1Id, player2Id) {
     const roomId = uuid.v4()
     const player1 = socketServer.getPlayer(player1Id)
     const player2 = socketServer.getPlayer(player2Id)
+
+    // socketServer.addPlayer(player1Id, { roomId })
+    // socketServer.addPlayer(player2Id, { roomId })
 
     const players = [
       { id: player1.id, username: player1.username, status: 'joined' },
@@ -366,11 +373,19 @@ async function playerLoadedMap (id, roomId) {
         : player
     ))
 
-    // const notLoadedPlayers = room.players.filter(player => player.status !== 'loaded')
+    await socketServer.emit(roomId, [{ type: actions.MAP_LOADED, payload: { room } }])
+
+    const notLoadedPlayers = room.players.filter(player => player.status !== 'loaded')
+    if (!notLoadedPlayers.length) {
+      room.status = 'loaded'
+    }
 
     await client.setAsync(roomId, JSON.stringify(room))
 
-    socketServer.emit([{ type: actions.MAP_LOADED, payload: { room } }])
+    if (!notLoadedPlayers.length) {
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      await socketServer.emit(roomId, [{ type: actions.MAP_LOADED, payload: { room } }])
+    }
   } catch (err) {
     console.error(err)
   }
