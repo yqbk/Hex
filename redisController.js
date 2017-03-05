@@ -43,6 +43,26 @@ async function getMap (id, roomId) {
   }
 }
 
+async function checkWinner (roomId) {
+  try {
+    const room = socketServer.getRoom(roomId)
+    const winner = Object.keys(room.castles).reduce((acc, key) => (
+      acc === null ? room.castles[key] : (room.castles[key] === acc || !room.castles[key] ? acc : undefined)
+    ), null)
+
+    const playerFields = Object.keys(room.castles).filter(key => room.castles[key])
+
+    if (playerFields.length > 1 && winner) {
+      console.log(winner)
+    } else {
+      console.log(null)
+    }
+
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 async function spawnArmy (roomId, hexId) {
   lock(`armyAccess${roomId}`, async (done) => {
     try {
@@ -57,6 +77,10 @@ async function spawnArmy (roomId, hexId) {
         type: 'CHANGE_HEX_ARMY_VALUE',
         payload: { hexId, armyValue: hex.army }
       }])
+
+      const room = socketServer.getRoom(roomId)
+      socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [hexId]: hex.owner.id }) })
+      checkWinner(roomId)
 
       setTimeout(() => {
         spawnArmy(roomId, hexId)
@@ -160,7 +184,7 @@ async function armyMove (id, roomId, { from, to, number, patrol, moveId }, begin
 
         if (!nextHexOwner || nextHexOwner.id === id || (nextHexOwner && !nextHexArmy)) {
           if (nextHex.castle && !nextHex.owner) {
-            spawnArmy(id, nextHex.id)
+            spawnArmy(roomId, nextHex.id)
           }
 
           nextHex.owner = hexFrom.owner
@@ -342,7 +366,13 @@ async function startDuel (player1Id, player2Id, availableRoom) {
 
     const status = 'loading'
 
-    const room = { roomId, players, status, db: availableRoom }
+    const room = {
+      roomId,
+      players,
+      status,
+      db: availableRoom,
+      castles: { 20: null, 76: null, 200: null, 57: null, 177: null, 13: null, 98: null }
+    }
 
     // await client.select(2)
     // await client.setAsync(roomId, JSON.stringify(room))
