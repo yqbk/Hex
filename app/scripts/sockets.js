@@ -1,4 +1,4 @@
-import { QUEUE_JOINED, MAP_LOADED } from './actions'
+import { QUEUE_JOINED, MAP_LOADED, GET_MAP } from './actions'
 
 const protocol = (window.location.protocol === 'https:') ? 'wss:' : 'ws:'
 const ws = new WebSocket(`${protocol}//${location.host}`, 'echo-protocol')
@@ -26,6 +26,9 @@ function createRequest (type, payload) {
   return JSON.stringify({ id: sessionStorage.getItem('id'), roomId: sessionStorage.getItem('roomId'), type, payload })
 }
 
+export function getMap () {
+  ws.send(createRequest(GET_MAP))
+}
 
 export function register (name, hexId) {
   ws.send(createRequest('REGISTER', { name, hexId }))

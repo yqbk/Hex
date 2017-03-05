@@ -13,7 +13,7 @@ const compiler = webpack(config)
 const app = express()
 const server = http.createServer(app)
 
-app.get('/map', redisController.getMap)
+// app.get('/map', redisController.getMap)
 
 app.use(history({
   index: '/index.html'
@@ -35,23 +35,29 @@ server.listen(port, '0.0.0.0', (err) => {
 
 let playersQueue = []
 
-function checkQueue () {
+async function checkQueue () {
   const [p1, p2, ...rest] = playersQueue
   if (p1 && p2) {
-    playersQueue = rest
-    redisController.startDuel(p1, p2)
+    const availableRoom = await redisController.getRoomRedisNumber()
+    if (availableRoom) {
+      playersQueue = rest
+      redisController.startDuel(p1, p2, availableRoom)
+    }
   }
 }
 
 socketServer.listener(server)
-  .on(actions.QUEUE_JOINED, (id, roomId, { username }, socket) => {
+  .on(actions.GET_MAP, (id, roomId) => {
+    redisController.getMap(id, roomId)
+  })
+  .on(actions.QUEUE_JOINED, async (id, roomId, { username }, socket) => {
     const playerId = id || uuid.v4()
     if (!playersQueue.includes(playerId)) {
       playersQueue = [...playersQueue, playerId]
       socketServer.addPlayer(playerId, { socket, username })
       socketServer.send(playerId, [{ type: actions.QUEUE_JOINED, payload: { id: playerId } }])
     }
-    checkQueue()
+    await checkQueue()
   })
   .on(actions.MAP_LOADED, (id, roomId) => {
     redisController.playerLoadedMap(id, roomId)

@@ -15,9 +15,6 @@ const socketServer = require('./socketServer')
 client.on('connect', async () => {
   await client.flushall()
   console.log('Redis databases cleared')
-  await client.select(1)
-  await Promise.all(mapFile.map(async (hex) => { await client.setAsync(hex.id, JSON.stringify(hex)) }))
-  console.log('Map inserted into redis')
 })
 
 const moves = {}
@@ -29,27 +26,28 @@ const randomColor = () => {
 
 // redis databases
 // 0 - user
-// 1 - hex
-// 2 - rooms
+// 1-4 - hexes
 
-async function getMap (req, res) {
+async function getMap (id, roomId) {
   try {
-    await client.select(1)
+    const { db } = socketServer.getRoom(roomId)
+    await client.select(db)
     const mapKeys = await client.keysAsync('*')
     const map = {}
     for (const key in mapKeys) { // eslint-disable-line
       map[key] = JSON.parse(await client.getAsync(key)) // eslint-disable-line
     }
-    res.json(map)
+    socketServer.send(id, [{ type: actions.GET_MAP, payload: { map } }])
   } catch (err) {
-    res.status(500).json([])
+    console.error(err)
   }
 }
 
 async function spawnArmy (roomId, hexId) {
-  lock('armyAccess', async (done) => {
+  lock(`armyAccess${roomId}`, async (done) => {
     try {
-      await client.select(1)
+      const { db } = socketServer.getRoom(roomId)
+      await client.select(db)
       const hex = JSON.parse(await client.getAsync(hexId))
       const hexArmy = hex.army || 0
       const nexArmy = hexArmy + 10
@@ -71,14 +69,15 @@ async function spawnArmy (roomId, hexId) {
 }
 
 async function register (id, roomId, { name, hexId }) {
-  lock('armyAccess', async (done) => {
+  lock(`armyAccess${roomId}`, async (done) => {
+    const { db } = socketServer.getRoom(roomId)
     const playerId = uuid.v4()
     const player = { id: playerId, name, color: randomColor() }
     try {
       await client.select(0)
       await client.setAsync(playerId, JSON.stringify(player))
 
-      await client.select(1)
+      await client.select(db)
       const hex = JSON.parse(await client.getAsync(hexId))
       if (!hex.castle) {
         throw new Error('You need to choose a castle')
@@ -103,9 +102,9 @@ async function register (id, roomId, { name, hexId }) {
 
 const getDistance = ({ x: x1, y: y1 }, { x: x2, y: y2 }) => Math.sqrt(((x2 - x1) ** 2) + ((y2 - y1) ** 2))
 
-async function getNextHex ({ hexFrom, hexTo }) {
+async function getNextHex ({ hexFrom, hexTo, db }) {
   try {
-    await client.select(1)
+    await client.select(db)
     return (await Promise.all(hexFrom.neighbours.map(({ id }) => client.getAsync(id))))
       .map(JSON.parse)
       .reduce((acc, n) => {
@@ -126,7 +125,8 @@ async function getNextHex ({ hexFrom, hexTo }) {
 
 async function stopMove (id, roomId, { hexId }) {
   try {
-    await client.select(1)
+    const { db } = socketServer.getRoom(roomId)
+    await client.select(db)
     const hex = JSON.parse(await client.getAsync(hexId))
     if (hex.owner && hex.owner.id === id && hex.moveId) {
       const { timeoutId, destination } = moves[hex.moveId] || {}
@@ -140,9 +140,10 @@ async function stopMove (id, roomId, { hexId }) {
 }
 
 async function armyMove (id, roomId, { from, to, number, patrol, moveId }, beginning) {
-  lock('armyAccess', async (done) => {
+  lock(`armyAccess${roomId}`, async (done) => {
     try {
-      await client.select(1)
+      const { db } = socketServer.getRoom(roomId)
+      await client.select(db)
       const [hexFrom, hexTo] = (await Promise.all([
         client.getAsync(from),
         client.getAsync(to)
@@ -151,7 +152,7 @@ async function armyMove (id, roomId, { from, to, number, patrol, moveId }, begin
       const hexFromOwner = hexFrom.owner
       const hexFromArmy = hexFrom.army || 0
 
-      const nextHex = await getNextHex({ hexFrom, hexTo })
+      const nextHex = await getNextHex({ hexFrom, hexTo, db })
 
       if (nextHex && hexFromOwner && hexFromOwner.id === id && hexFromArmy && nextHex.type !== 'water') {
         const nextHexArmy = nextHex.army || 0
@@ -238,9 +239,10 @@ async function armyMove (id, roomId, { from, to, number, patrol, moveId }, begin
 }
 
 function battle (roomId, { attackerId, defenderId, attackerHexId, defenderHexId }) {
-  lock('armyAccess', async (done) => {
+  lock(`armyAccess${roomId}`, async (done) => {
     try {
-      await client.select(1)
+      const { db } = socketServer.getRoom(roomId)
+      await client.select(db)
       const [attackerHex, defenderHex] = (await Promise.all([
         client.getAsync(attackerHexId),
         client.getAsync(defenderHexId)
@@ -327,7 +329,7 @@ function battle (roomId, { attackerId, defenderId, attackerHexId, defenderHexId 
   })
 }
 
-async function startDuel (player1Id, player2Id) {
+async function startDuel (player1Id, player2Id, availableRoom) {
   try {
     const roomId = uuid.v4()
     const player1 = socketServer.getPlayer(player1Id)
@@ -340,10 +342,15 @@ async function startDuel (player1Id, player2Id) {
 
     const status = 'loading'
 
-    const room = { roomId, players, status }
+    const room = { roomId, players, status, db: availableRoom }
 
     // await client.select(2)
     // await client.setAsync(roomId, JSON.stringify(room))
+
+    await client.select(availableRoom)
+    await Promise.all(mapFile.map(async (hex) => { await client.setAsync(hex.id, JSON.stringify(hex)) }))
+    console.log('Map inserted into redis')
+
     socketServer.addRoom(roomId, room)
     socketServer.send(player1.id, [{ type: actions.START_COUNTDOWN }])
     socketServer.send(player2.id, [{ type: actions.START_COUNTDOWN }])
@@ -389,11 +396,28 @@ async function playerLoadedMap (id, roomId) {
   }
 }
 
+async function getRoomRedisNumber () {
+  try {
+    const roomDbs = [1, 2, 3, 4, 6]
+    for (let i = 0; i < roomDbs.length; i += 1) {
+      await client.select(roomDbs[i]) // eslint-disable-line
+      const dbSize = await client.dbsizeAsync() // eslint-disable-line
+      if (dbSize === 0) {
+        return roomDbs[i]
+      }
+    }
+  } catch (err) {
+    console.error(err)
+  }
+  return null
+}
+
 module.exports = {
   getMap,
   register,
   armyMove,
   stopMove,
   startDuel,
-  playerLoadedMap
+  playerLoadedMap,
+  getRoomRedisNumber
 }

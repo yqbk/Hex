@@ -1,3 +1,4 @@
+export const GET_MAP = 'GET_MAP'
 export const QUEUE_JOINED = 'QUEUE_JOINED'
 export const START_COUNTDOWN = 'START_COUNTDOWN'
 export const LOADING_SCREEN = 'LOADING_SCREEN'

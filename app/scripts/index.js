@@ -1,9 +1,9 @@
 import * as PIXI from 'pixi.js'
 
-import listener from './sockets'
-import { getMap } from '../api'
+import listener, { getMap } from './sockets'
 import store from '../store'
 import { addToQueue } from '../actions'
+import { GET_MAP } from './actions'
 
 import Hex, { me, getSelectedHexIds } from './classes/Hex'
 
@@ -11,11 +11,6 @@ let app
 let container
 
 let dragging = false
-
-const createMap = () => getMap().then(({ data }) => Object.keys(data).reduce((acc, key) => ({
-  ...acc,
-  [key]: new Hex(data[key])
-}), {}))
 
 const isInside = ({ x, y }, { startX, startY, endX, endY }, scale) => (
   Math.min(startX, endX) <= scale * x &&
@@ -79,80 +74,87 @@ export default function init (spawnPosition) {
   app.stage.addChild(container)
   app.stage.addChild(graphics)
 
-  createMap()
-    .then((grid) => {
-      Object.keys(grid).forEach((key) => {
-        grid[key].render(container, grid)
-      })
+  let grid = {}
 
-      console.log(spawnPosition)
-      me.register(spawnPosition)
+  container.mousedown = (e) => {
+    dragging = true
+    const { data: { global: { x, y } = { x: 0, y: 0 } } = {} } = e
+    startX = x
+    startY = y
+  }
 
-      container.mousedown = (e) => {
-        dragging = true
-        const { data: { global: { x, y } = { x: 0, y: 0 } } = {} } = e
-        startX = x
-        startY = y
-      }
+  container.mouseup = () => {
+    dragging = false
+    graphics.clear()
+  }
 
-      container.mouseup = () => {
-        dragging = false
-        graphics.clear()
-      }
+  container.mousemove = (e) => {
+    if (dragging) {
+      const { data: { global: { x, y } = { x: 0, y: 0 } } = {} } = e
+      graphics.clear()
+      graphics.lineStyle(2, 0x00CC00, 0.5)
+      graphics.beginFill(0x33FF33, 0.2)
+      graphics.drawRect(startX, startY, x - startX, y - startY)
+      // container.x += e.data.originalEvent.movementX
+      // container.y += e.data.originalEvent.movementY
 
-      container.mousemove = (e) => {
-        if (dragging) {
-          const { data: { global: { x, y } = { x: 0, y: 0 } } = {} } = e
-          graphics.clear()
-          graphics.lineStyle(2, 0x00CC00, 0.5)
-          graphics.beginFill(0x33FF33, 0.2)
-          graphics.drawRect(startX, startY, x - startX, y - startY)
-          // container.x += e.data.originalEvent.movementX
-          // container.y += e.data.originalEvent.movementY
+      if (Math.abs(startX - x) + Math.abs(startY - y) > 2) {
+        getSelectedHexIds().forEach((id) => {
+          grid[id].deselect()
+        })
 
-          if (Math.abs(startX - x) + Math.abs(startY - y) > 2) {
-            getSelectedHexIds().forEach((id) => {
-              grid[id].deselect()
-            })
-
-            me.ownedHexIds.forEach((id) => {
-              if (isInside(grid[id], { startX, startY, endX: x, endY: y }, scale)) {
-                grid[id].select()
-              }
-            })
+        me.ownedHexIds.forEach((id) => {
+          if (isInside(grid[id], { startX, startY, endX: x, endY: y }, scale)) {
+            grid[id].select()
           }
-        }
+        })
       }
+    }
+  }
 
-      listener()
-        .on('REGISTER', ({ playerId }) => {
-          sessionStorage.setItem('id', playerId)
-          me.id = playerId
-          me.registered = true
+  listener()
+    .on(GET_MAP, ({ map: gridMap }) => {
+      grid = Object.keys(gridMap).reduce((acc, key) => ({
+        ...acc,
+        [key]: new Hex(gridMap[key])
+      }), {})
+
+      Object.keys(grid)
+        .forEach((key) => {
+          grid[key].render(container, grid)
         })
-        .on('ERROR_MESSAGE', ({ message }) => {
-          store.dispatch(addToQueue(message))
-        })
-        .on('PLAYER_REGISTERED', ({ hexId, player }) => {
-          grid[hexId].changeOwner(player)
-        })
-        .on('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId, from }) => {
-          grid[hexId].changeArmyValue(armyValue, { player, moveId, from })
-        })
-        .on('SET_BATTLE', ({ attackerId, defenderId, state }) => {
-          grid[attackerId].setBattle(defenderId, state)
-        })
-        .on('GET_DESTINATION', ({ hexId, destination }) => {
-          grid[hexId].destination = destination
-          destination.forEach((id) => {
-            grid[id].hex.tint = 0x99CCFF
-          })
-        })
-        .on('CLEAR_DESTINATION', ({ hexId, destination }) => {
-          destination.forEach((id) => {
-            grid[id].hex.tint = 0xFFFFFF
-          })
-          grid[hexId].destination = []
-        })
+
+      me.register(spawnPosition)
     })
+    .on('REGISTER', ({ playerId }) => {
+      sessionStorage.setItem('id', playerId)
+      me.id = playerId
+      me.registered = true
+    })
+    .on('ERROR_MESSAGE', ({ message }) => {
+      store.dispatch(addToQueue(message))
+    })
+    .on('PLAYER_REGISTERED', ({ hexId, player }) => {
+      grid[hexId].changeOwner(player)
+    })
+    .on('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId, from }) => {
+      grid[hexId].changeArmyValue(armyValue, { player, moveId, from })
+    })
+    .on('SET_BATTLE', ({ attackerId, defenderId, state }) => {
+      grid[attackerId].setBattle(defenderId, state)
+    })
+    .on('GET_DESTINATION', ({ hexId, destination }) => {
+      grid[hexId].destination = destination
+      destination.forEach((id) => {
+        grid[id].hex.tint = 0x99CCFF
+      })
+    })
+    .on('CLEAR_DESTINATION', ({ hexId, destination }) => {
+      destination.forEach((id) => {
+        grid[id].hex.tint = 0xFFFFFF
+      })
+      grid[hexId].destination = []
+    })
+
+  getMap()
 }
