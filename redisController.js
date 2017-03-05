@@ -78,10 +78,6 @@ async function spawnArmy (roomId, hexId) {
         payload: { hexId, armyValue: hex.army }
       }])
 
-      const room = socketServer.getRoom(roomId)
-      socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [hexId]: hex.owner.id }) })
-      checkWinner(roomId)
-
       setTimeout(() => {
         spawnArmy(roomId, hexId)
       }, 5000)
@@ -114,6 +110,9 @@ async function register (id, roomId, { name, hexId }) {
       await client.setAsync(hexId, JSON.stringify(hex))
 
       spawnArmy(roomId, hexId)
+      const room = socketServer.getRoom(roomId)
+      socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [hexId]: hex.owner.id }) })
+      checkWinner(roomId)
 
       socketServer.emit(roomId, [{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
       socketServer.send(id, [{ type: 'REGISTER', payload: { playerId } }])
@@ -185,6 +184,12 @@ async function armyMove (id, roomId, { from, to, number, patrol, moveId }, begin
         if (!nextHexOwner || nextHexOwner.id === id || (nextHexOwner && !nextHexArmy)) {
           if (nextHex.castle && !nextHex.owner) {
             spawnArmy(roomId, nextHex.id)
+          }
+
+          if (nextHex.castle) {
+            const room = socketServer.getRoom(roomId)
+            socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [to]: hexFrom.owner.id }) })
+            checkWinner(roomId)
           }
 
           nextHex.owner = hexFrom.owner
