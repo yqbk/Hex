@@ -1,31 +1,32 @@
-const _ = require('lodash')
+// const _ = require('lodash')
 const WebSocket = require('ws')
 
 const players = {}
+const rooms = {}
 
-const getPlayer = id => players[id] // _.find(players, { id })
+const getPlayer = id => players[id]
+const getRoom = id => rooms[id]
 
 function addPlayer (id, params) {
   players[id] = Object.assign({ id }, getPlayer(id) || {}, params)
-  // const player = getPlayer(id) || {}
-  // players = [...players.filter(p => p.id !== id), Object.assign({ id }, player, params)]
 }
 
-function emit (client) {
-  return async (roomId, list) => {
-    await client.select(2)
-    const room = JSON.parse(await client.getAsync(roomId))
-    const playersInRoom = room.players.map(({ id }) => getPlayer(id))
-    playersInRoom.forEach(({ socket }) => {
-      try {
-        if (socket.readyState === 1) {
-          socket.send(JSON.stringify(list))
-        }
-      } catch (err) {
-        console.log(err)
+function addRoom (id, params) {
+  rooms[id] = Object.assign({ id }, getRoom(id) || {}, params)
+}
+
+function emit (roomId, list) {
+  const room = getRoom(roomId)
+  const playersInRoom = room.players.map(({ id }) => getPlayer(id))
+  playersInRoom.forEach(({ socket }) => {
+    try {
+      if (socket.readyState === 1) {
+        socket.send(JSON.stringify(list))
       }
-    })
-  }
+    } catch (err) {
+      console.log(err)
+    }
+  })
 }
 
 function send (playerId, data) {
@@ -58,10 +59,12 @@ function listener (server) {
   }
 }
 
-module.exports = client => ({
+module.exports = {
   getPlayer,
   listener,
-  emit: emit(client),
+  emit,
   send,
-  addPlayer
-})
+  addPlayer,
+  getRoom,
+  addRoom
+}

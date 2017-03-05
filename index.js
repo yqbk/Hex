@@ -5,7 +5,7 @@ const config = require('./webpack.config')
 const webpack = require('webpack')
 const uuid = require('uuid')
 const redisController = require('./redisController')
-const socketServer = require('./socketServer')()
+const socketServer = require('./socketServer')
 const actions = require('./app/scripts/actions')
 
 const port = process.env.PORT || 5000
@@ -60,9 +60,7 @@ socketServer.listener(server)
     redisController.register(id, roomId, { name, hexId })
   })
   .on('ARMY_MOVE', (id, roomId, { from, to, number, patrol }) => {
-    const start = +new Date()
     const moveId = uuid.v1()
     redisController.stopMove(id, roomId, { hexId: from })
     redisController.armyMove(id, roomId, { from, to, number, patrol, moveId }, from)
-    console.log('ARMY_MOVE', +new Date() - start)
   })

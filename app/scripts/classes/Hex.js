@@ -12,7 +12,7 @@ let selectedHexIds = []
 
 let ctrlPressed = false
 
-const displayGroupsList = ['hexex', 'borders', 'battleIcons', 'castles', 'armyNumbers', 'armyIcons']
+const displayGroupsList = ['hexex', 'borders', 'battleIcons', 'armyNumbers', 'armyIcons', 'shadows', 'castles']
 const displayGroups = displayGroupsList.reduce((acc, curr, index) => ({
   ...acc,
   [curr]: new PIXI.DisplayGroup(index)
@@ -116,8 +116,12 @@ class Hex {
     // this.initializeItem(this.number, this.hex.x, this.hex.y, 0.5)
     // this.container.addChild(this.number)
 
+    this.shadow = new PIXI.Sprite(PIXI.loader.resources[type].texture)
+    this.initializeItem(this.shadow, this.hex.x, this.hex.y, 0.5, 'shadows')
+    this.shadow.tint = '0x898989'
+    this.container.addChild(this.shadow)
+
     this.container.interactive = true
-    this.container.buttonMode = true
     this.container.click = this.handleClick
     this.container.mouseover = this.handleMouseOver
     this.container.mouseout = this.handleMouseLeave
@@ -125,7 +129,6 @@ class Hex {
 
   initializeItem (item, x, y, scale, displayGroup) {
     item.interactive = true
-    item.buttonMode = true
     item.anchor.set(0.5)
     item.contain = item
     item.scale.set(scale)
@@ -163,8 +166,6 @@ class Hex {
 
   handleClick () {
     if (!moved) {
-      me.register(this.id)
-
       if (!selectedHexIds.length) {
         if (this.armyNumber.visible && this.owner && this.owner.id === me.id) {
           this.select()
@@ -209,8 +210,10 @@ class Hex {
       this.armyIcon.tint = `0x${owner.color}`
     }
 
-    if (this.owner && this.owner.id === me.id && value !== 0) {
-      me.ownedHexIds = [...me.ownedHexIds, this.id]
+    if (this.owner && this.owner.id === me.id && (value !== 0 || this.castle)) {
+      if (!me.ownedHexIds.includes(this.id)) {
+        me.ownedHexIds = [...me.ownedHexIds, this.id]
+      }
     } else {
       me.ownedHexIds = me.ownedHexIds.filter(id => id !== this.id)
     }
@@ -227,12 +230,46 @@ class Hex {
     this.armyNumber.visible = !!value
     this.armyIcon.scale.set(getArmyIconScale(value))
     this.armyIcon.visible = !!value
+    this.container.buttonMode = !!value
     this.changeOwner(player, value)
+
+    // if (value) {
+    //   this.shadow.visible = false
+    //   console.log(this.neighbours)
+    //   this.neighbours.forEach(({ id }) => {
+    //     this.grid[id].shadow.visible = false
+    //   })
+    // } else {
+    //   this.shadow.visible = true
+    //   console.log(this.neighbours)
+    //   this.neighbours.forEach(({ id }) => {
+    //     this.grid[id].shadow.visible = true
+    //   })
+    // }
 
     if (from && selectedHexIds.includes(from)) {
       this.grid[from].deselect()
       this.select()
     }
+
+    this.shadow.visible = true
+    this.neighbours.forEach(({ id }) => {
+      this.grid[id].shadow.visible = true
+      this.grid[id].neighbours.forEach(({ id: nId }) => {
+        this.grid[nId].shadow.visible = true
+      })
+    })
+
+    me.ownedHexIds.forEach((id) => {
+      this.grid[id].shadow.visible = false
+      this.grid[id].neighbours.forEach(({ id: nId }) => {
+        this.grid[nId].shadow.visible = false
+        this.grid[nId].neighbours.forEach(({ id: nnId }) => {
+          this.grid[nnId].shadow.visible = false
+        })
+      })
+    })
+
     // console.log(me.ownedHexIds)
     // if (hoveredHex === this.id) {
     //   getDestination(this.moveId)

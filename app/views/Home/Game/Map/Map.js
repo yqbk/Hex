@@ -5,7 +5,8 @@ import init from '../../../../scripts/index'
 class Map extends Component {
 
   componentDidMount () {
-    init()
+    const { spawnPosition } = this.props
+    init(spawnPosition)
   }
 
   render () {

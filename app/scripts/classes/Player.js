@@ -5,6 +5,7 @@ class Player {
     this.name = name
     this.registered = false
     this.ownedHexIds = []
+    this.ownedCastles = []
   }
 
   register (hexId) {

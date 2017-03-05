@@ -42,7 +42,7 @@ export function preload () {
   })
 }
 
-export default function init () {
+export default function init (spawnPosition) {
   const map = document.getElementById('map')
   const WIDTH = window.innerWidth
   const HEIGHT = window.innerHeight
@@ -84,6 +84,9 @@ export default function init () {
       Object.keys(grid).forEach((key) => {
         grid[key].render(container, grid)
       })
+
+      console.log(spawnPosition)
+      me.register(spawnPosition)
 
       container.mousedown = (e) => {
         dragging = true
