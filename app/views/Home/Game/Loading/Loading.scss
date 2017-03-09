@@ -19,14 +19,6 @@
   height: 150px;
   border-radius: 75px;
 
-  &:first-child {
-    background: red;
-  }
-
-  &:nth-child(2) {
-    background: deepskyblue;
-  }
-
   & > div {
     display: flex;
     flex-direction: column;

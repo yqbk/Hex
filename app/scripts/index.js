@@ -5,7 +5,8 @@ import store from '../store'
 import { addToQueue } from '../actions'
 import { GET_MAP } from './actions'
 
-import Hex, { me, getSelectedHexIds } from './classes/Hex'
+import Hex, { getSelectedHexIds } from './classes/Hex'
+import me from './classes/Player'
 
 let app
 let container
@@ -124,18 +125,18 @@ export default function init (spawnPosition) {
           grid[key].render(container, grid)
         })
 
-      me.register(spawnPosition)
+      // me.register(spawnPosition)
     })
     .on('REGISTER', ({ playerId }) => {
-      sessionStorage.setItem('id', playerId)
-      me.id = playerId
-      me.registered = true
+      // sessionStorage.setItem('id', playerId)
+      // me.id = playerId
+      // me.registered = true
     })
     .on('ERROR_MESSAGE', ({ message }) => {
       store.dispatch(addToQueue(message))
     })
     .on('PLAYER_REGISTERED', ({ hexId, player }) => {
-      grid[hexId].changeOwner(player)
+      // grid[hexId].changeOwner(player)
     })
     .on('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId, from }) => {
       grid[hexId].changeArmyValue(armyValue, { player, moveId, from })

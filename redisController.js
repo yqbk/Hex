@@ -19,11 +19,6 @@ client.on('connect', async () => {
 
 const moves = {}
 
-const randomColor = () => {
-  const number = Math.floor(Math.random() * 16777215) + 1
-  return number.toString(16)
-}
-
 // redis databases
 // 0 - user
 // 1-4 - hexes
@@ -47,17 +42,16 @@ async function checkWinner (roomId) {
   try {
     const room = socketServer.getRoom(roomId)
     const winner = Object.keys(room.castles).reduce((acc, key) => (
-      acc === null ? room.castles[key] : (room.castles[key] === acc || !room.castles[key] ? acc : undefined)
+      acc === null ? room.castles[key] : (((room.castles[key] === acc || !room.castles[key]) && acc) || undefined)
     ), null)
 
     const playerFields = Object.keys(room.castles).filter(key => room.castles[key])
 
     if (playerFields.length > 1 && winner) {
-      console.log(winner)
+      console.log('winner', winner)
     } else {
-      console.log(null)
+      console.log('winner', winner)
     }
-
   } catch (err) {
     console.error(err)
   }
@@ -72,10 +66,11 @@ async function spawnArmy (roomId, hexId) {
       const hexArmy = hex.army || 0
       const nexArmy = hexArmy + 10
       hex.army = nexArmy > 100 ? hexArmy : nexArmy
+      const player = hex.owner
       await client.setAsync(hexId, JSON.stringify(hex))
       socketServer.emit(roomId, [{
         type: 'CHANGE_HEX_ARMY_VALUE',
-        payload: { hexId, armyValue: hex.army }
+        payload: { player, hexId, armyValue: hex.army }
       }])
 
       setTimeout(() => {
@@ -88,35 +83,25 @@ async function spawnArmy (roomId, hexId) {
   })
 }
 
-async function register (id, roomId, { name, hexId }) {
+async function register (id, roomId, { hexId }) {
   lock(`armyAccess${roomId}`, async (done) => {
     const { db } = socketServer.getRoom(roomId)
-    const playerId = uuid.v4()
-    const player = { id: playerId, name, color: randomColor() }
+    const player = socketServer.getPlayer(id)
     try {
-      await client.select(0)
-      await client.setAsync(playerId, JSON.stringify(player))
-
       await client.select(db)
       const hex = JSON.parse(await client.getAsync(hexId))
-      if (!hex.castle) {
-        throw new Error('You need to choose a castle')
-      }
-      if (hex.owner) {
-        throw new Error('This field is already taken')
-      }
-      hex.owner = player
+      hex.owner = _.omit(player, ['socket'])
 
       await client.setAsync(hexId, JSON.stringify(hex))
 
       spawnArmy(roomId, hexId)
-      const room = socketServer.getRoom(roomId)
-      socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [hexId]: hex.owner.id }) })
-      checkWinner(roomId)
+      // const room = socketServer.getRoom(roomId)
+      // socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [hexId]: hex.owner.id }) })
+      // checkWinner(roomId)
 
-      socketServer.emit(roomId, [{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
-      socketServer.send(id, [{ type: 'REGISTER', payload: { playerId } }])
+      // socketServer.emit(roomId, [{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
     } catch ({ message }) {
+      console.log(message)
       socketServer.send(id, [{ type: 'ERROR_MESSAGE', payload: { message } }])
     }
     done()
@@ -365,8 +350,8 @@ async function startDuel (player1Id, player2Id, availableRoom) {
     const player2 = socketServer.getPlayer(player2Id)
 
     const players = [
-      { id: player1.id, username: player1.username, status: 'joined' },
-      { id: player2.id, username: player2.username, status: 'joined' }
+      { id: player1.id, username: player1.username, color: player1.color, status: 'joined' },
+      { id: player2.id, username: player2.username, color: player2.color, status: 'joined' }
     ]
 
     const status = 'loading'
@@ -423,7 +408,8 @@ async function playerLoadedMap (id, roomId) {
       const spawnPositions = _.shuffle([20, 76])
       room.players.forEach((player) => {
         const spawnPosition = spawnPositions.pop()
-        socketServer.send(player.id, [{ type: actions.MAP_LOADED, payload: { room: { ...room, spawnPosition } } }])
+        register(player.id, roomId, { hexId: spawnPosition })
+        socketServer.send(player.id, [{ type: actions.MAP_LOADED, payload: { room } }])
       })
     }
   } catch (err) {

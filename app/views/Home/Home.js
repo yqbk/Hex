@@ -6,6 +6,7 @@ import Name from '../../components/Name/Name'
 
 import listener from '../../scripts/sockets'
 import { LOADING_SCREEN } from '../../scripts/actions'
+import me from '../../scripts/classes/Player'
 import { setCurrentGame } from '../../actions'
 
 class Home extends Component {
@@ -30,6 +31,7 @@ class Home extends Component {
   }
 
   handleNameChange (username) {
+    me.name = username
     this.setState({ username })
   }
 

@@ -2,10 +2,8 @@ import _ from 'lodash'
 import PIXIDisplay from 'pixi-display' // eslint-disable-line
 import * as PIXI from 'pixi.js'
 
-import Player from './Player'
+import me from './Player'
 import { armyMove } from '../sockets'
-
-export const me = new Player('john')
 
 let moved = false
 let selectedHexIds = []
@@ -119,7 +117,7 @@ class Hex {
     this.shadow = new PIXI.Sprite(PIXI.loader.resources[type].texture)
     this.initializeItem(this.shadow, this.hex.x, this.hex.y, 0.5, 'shadows')
     this.shadow.tint = '0x898989'
-    this.container.addChild(this.shadow)
+    // this.container.addChild(this.shadow)
 
     this.container.interactive = true
     this.container.click = this.handleClick

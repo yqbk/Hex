@@ -46,6 +46,11 @@ async function checkQueue () {
   }
 }
 
+const randomColor = () => {
+  const number = Math.floor(Math.random() * 16777215) + 1
+  return number.toString(16)
+}
+
 socketServer.listener(server)
   .on(actions.GET_MAP, (id, roomId) => {
     redisController.getMap(id, roomId)
@@ -54,7 +59,7 @@ socketServer.listener(server)
     const playerId = id || uuid.v4()
     if (!playersQueue.includes(playerId)) {
       playersQueue = [...playersQueue, playerId]
-      socketServer.addPlayer(playerId, { socket, username })
+      socketServer.addPlayer(playerId, { id: playerId, socket, username, color: randomColor() })
       socketServer.send(playerId, [{ type: actions.QUEUE_JOINED, payload: { id: playerId } }])
     }
     await checkQueue()
@@ -63,7 +68,7 @@ socketServer.listener(server)
     redisController.playerLoadedMap(id, roomId)
   })
   .on('REGISTER', (id, roomId, { name, hexId }) => {
-    redisController.register(id, roomId, { name, hexId })
+    // redisController.register(id, roomId, { name, hexId })
   })
   .on('ARMY_MOVE', (id, roomId, { from, to, number, patrol }) => {
     const moveId = uuid.v1()

@@ -3,6 +3,8 @@ import React, { Component, PropTypes } from 'react'
 import listener, { joinQueue } from '../../../scripts/sockets'
 import { QUEUE_JOINED, START_COUNTDOWN } from '../../../scripts/actions'
 
+import me from '../../../scripts/classes/Player'
+
 import style from './Menu.scss'
 
 class Menu extends Component {
@@ -26,6 +28,7 @@ class Menu extends Component {
     listener()
       .on(QUEUE_JOINED, ({ id }) => {
         sessionStorage.setItem('id', id)
+        me.id = id
         this.setState({
           queueJoined: true
         })

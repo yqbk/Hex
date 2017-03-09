@@ -24,7 +24,7 @@ class Game extends Component {
         {
           game.status === 'loading'
             ? <Loading game={game} />
-            : <Map spawnPosition={game.spawnPosition} />
+            : <Map />
         }
       </div>
     )
