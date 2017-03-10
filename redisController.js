@@ -49,8 +49,11 @@ async function checkWinner (roomId) {
 
     if (playerFields.length > 1 && winner) {
       console.log('winner', winner)
+      const player = socketServer.getPlayer(winner)
+      room.winner = _.omit(player, ['socket'])
+      socketServer.emit(roomId, [{ type: actions.WINNER, payload: { room } }])
     } else {
-      console.log('winner', winner)
+      console.log('winner', winner, playerFields, room)
     }
   } catch (err) {
     console.error(err)
@@ -95,8 +98,8 @@ async function register (id, roomId, { hexId }) {
       await client.setAsync(hexId, JSON.stringify(hex))
 
       spawnArmy(roomId, hexId)
-      // const room = socketServer.getRoom(roomId)
-      // socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [hexId]: hex.owner.id }) })
+      const room = socketServer.getRoom(roomId)
+      socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [hexId]: hex.owner.id }) })
       // checkWinner(roomId)
 
       // socketServer.emit(roomId, [{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
@@ -171,12 +174,6 @@ async function armyMove (id, roomId, { from, to, number, patrol, moveId }, begin
             spawnArmy(roomId, nextHex.id)
           }
 
-          if (nextHex.castle) {
-            const room = socketServer.getRoom(roomId)
-            socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [to]: hexFrom.owner.id }) })
-            checkWinner(roomId)
-          }
-
           nextHex.owner = hexFrom.owner
           const armyToMove = number || hexFromArmy
           nextHex.army = nextHexArmy + (armyToMove > hexFromArmy ? hexFromArmy : armyToMove)
@@ -225,6 +222,12 @@ async function armyMove (id, roomId, { from, to, number, patrol, moveId }, begin
               }, timeoutId ? { moveId } : { moveId: null })
             }
           ])
+
+          if (nextHex.castle) {
+            const room = socketServer.getRoom(roomId)
+            socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [to]: hexFrom.owner.id }) })
+            checkWinner(roomId)
+          }
         } else {
           // stopMove(nextHexOwner.id, { hexId: nextHex.id }, send)
           const { hexId, destination } = moves[moveId] || {}
@@ -349,10 +352,20 @@ async function startDuel (player1Id, player2Id, availableRoom) {
     const player1 = socketServer.getPlayer(player1Id)
     const player2 = socketServer.getPlayer(player2Id)
 
-    const players = [
-      { id: player1.id, username: player1.username, color: player1.color, status: 'joined' },
-      { id: player2.id, username: player2.username, color: player2.color, status: 'joined' }
-    ]
+    const spawnPositions = _.shuffle([20, 76])
+    // room.players.forEach((player) => {
+    //   const spawnPosition = spawnPositions.pop()
+    //   register(player.id, roomId, { hexId: spawnPosition })
+    //   socketServer.send(player.id, [{ type: actions.MAP_LOADED, payload: { room: { ...room, spawnPosition } } }])
+    // })
+
+    const players = [player1, player2].map(player => ({
+      id: player.id,
+      username: player.username,
+      color: player.color,
+      status: 'joined',
+      spawnPosition: spawnPositions.pop()
+    }))
 
     const status = 'loading'
 
@@ -404,11 +417,9 @@ async function playerLoadedMap (id, roomId) {
     socketServer.addRoom(roomId, room)
 
     if (!notLoadedPlayers.length) {
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      const spawnPositions = _.shuffle([20, 76])
+      // await new Promise(resolve => setTimeout(resolve, 3000))
       room.players.forEach((player) => {
-        const spawnPosition = spawnPositions.pop()
-        register(player.id, roomId, { hexId: spawnPosition })
+        register(player.id, roomId, { hexId: player.spawnPosition })
         socketServer.send(player.id, [{ type: actions.MAP_LOADED, payload: { room } }])
       })
     }

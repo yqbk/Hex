@@ -117,7 +117,7 @@ class Hex {
     this.shadow = new PIXI.Sprite(PIXI.loader.resources[type].texture)
     this.initializeItem(this.shadow, this.hex.x, this.hex.y, 0.5, 'shadows')
     this.shadow.tint = '0x898989'
-    // this.container.addChild(this.shadow)
+    this.container.addChild(this.shadow)
 
     this.container.interactive = true
     this.container.click = this.handleClick

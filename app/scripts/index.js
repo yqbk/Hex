@@ -38,7 +38,7 @@ export function preload () {
   })
 }
 
-export default function init (spawnPosition) {
+export default function init (spawnPosition, onLoad) {
   const map = document.getElementById('map')
   const WIDTH = window.innerWidth
   const HEIGHT = window.innerHeight
@@ -115,7 +115,7 @@ export default function init (spawnPosition) {
 
   listener()
     .on(GET_MAP, ({ map: gridMap }) => {
-      grid = Object.keys(gridMap).reduce((acc, key) => ({
+      grid = Object.keys(gridMap).filter(key => gridMap[key]).reduce((acc, key) => ({
         ...acc,
         [key]: new Hex(gridMap[key])
       }), {})
@@ -124,6 +124,13 @@ export default function init (spawnPosition) {
         .forEach((key) => {
           grid[key].render(container, grid)
         })
+
+      setTimeout(onLoad, Math.floor(Math.random() * 2000) + 2000)
+
+      // console.log(spawnPosition, grid[spawnPosition])
+      //
+      // container.x = grid[spawnPosition].x
+      // container.y = grid[spawnPosition].y
 
       // me.register(spawnPosition)
     })
@@ -139,10 +146,14 @@ export default function init (spawnPosition) {
       // grid[hexId].changeOwner(player)
     })
     .on('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId, from }) => {
-      grid[hexId].changeArmyValue(armyValue, { player, moveId, from })
+      if (grid[hexId]) {
+        grid[hexId].changeArmyValue(armyValue, { player, moveId, from })
+      }
     })
     .on('SET_BATTLE', ({ attackerId, defenderId, state }) => {
-      grid[attackerId].setBattle(defenderId, state)
+      if (grid[attackerId]) {
+        grid[attackerId].setBattle(defenderId, state)
+      }
     })
     .on('GET_DESTINATION', ({ hexId, destination }) => {
       grid[hexId].destination = destination
@@ -158,4 +169,8 @@ export default function init (spawnPosition) {
     })
 
   getMap()
+}
+
+export function reset () {
+  listener().reset()
 }

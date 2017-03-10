@@ -1,23 +1,15 @@
 import React, { Component, PropTypes } from 'react'
 
-import { preload } from '../../../../scripts/index'
-import { mapLoaded } from '../../../../scripts/sockets'
-
 import style from './Loading.scss'
 
 class Loading extends Component {
   componentDidMount () {
-    const { game } = this.props
-    preload()
-      .then(() => {
-        mapLoaded(game.roomId)
-      })
   }
 
   render () {
     const { game } = this.props
     return (
-      <div>
+      <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
         <div className={style.container}>
           {
             game.players.map(player => (

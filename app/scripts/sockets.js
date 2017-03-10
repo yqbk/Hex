@@ -6,7 +6,7 @@ const ws = new WebSocket(`${protocol}//${location.host}`, 'echo-protocol')
 ws.onopen = () => {}
 ws.onclose = () => {}
 
-const callbacks = {}
+let callbacks = {}
 
 export default function listener () {
   ws.onmessage = (evt) => {
@@ -17,6 +17,10 @@ export default function listener () {
   return {
     on: function (type, callback) { // eslint-disable-line
       callbacks[type] = callback
+      return this
+    },
+    reset: function () { // eslint-disable-line
+      callbacks = {}
       return this
     }
   }

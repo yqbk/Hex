@@ -3,9 +3,10 @@ import { connect } from 'react-redux'
 
 import Loading from './Loading/Loading'
 import Map from './Map/Map'
+import WinnerScreen from './WinnerScreen/WinnerScreen'
 
 import listener from '../../../scripts/sockets'
-import { MAP_LOADED } from '../../../scripts/actions'
+import { MAP_LOADED, WINNER } from '../../../scripts/actions'
 import { setCurrentGame } from '../../../actions'
 
 class Game extends Component {
@@ -22,9 +23,11 @@ class Game extends Component {
     return (
       <div>
         {
-          game.status === 'loading'
-            ? <Loading game={game} />
-            : <Map />
+          game.status === 'loading' && <Loading game={game} />
+        }
+        <Map {...this.props} />
+        {
+          game.winner && <WinnerScreen winner={game.winner} />
         }
       </div>
     )
