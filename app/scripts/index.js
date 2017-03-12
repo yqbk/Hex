@@ -13,6 +13,15 @@ let container
 
 let dragging = false
 
+const controlPadding = 30
+let distanceX = 0
+let distanceY = 0
+
+let interval
+
+const WIDTH = window.innerWidth
+const HEIGHT = window.innerHeight
+
 const isInside = ({ x, y }, { startX, startY, endX, endY }, scale) => (
   Math.min(startX, endX) <= scale * x &&
   Math.max(startX, endX) >= scale * x &&
@@ -38,10 +47,32 @@ export function preload () {
   })
 }
 
+function rotate (sX, sY, angle, inX, inY) {
+  return {
+    x: (((sX - inX) * Math.cos(angle)) - ((sY - inY) * Math.sin(angle))) + inX,
+    y: (((sX - inX) * Math.sin(angle)) + ((sY - inY) * Math.cos(angle))) + inY
+  }
+}
+
+function scrollScreen (e) {
+  const { clientX, clientY } = e
+  const angleRad = Math.atan((clientY - (HEIGHT / 2)) / (clientX - (WIDTH / 2)))
+  const angle = ((180 / Math.PI) * angleRad) + 90 + (clientX < WIDTH / 2 ? 180 : 0)
+  if (WIDTH - clientX <= controlPadding || clientX < controlPadding ||
+    HEIGHT - clientY <= controlPadding || clientY <= controlPadding) {
+    const { inX, inY } = { inX: 0, inY: 0 }
+    const { sX, sY } = { sX: 0, sY: -20 }
+    const { x, y } = rotate(sX, sY, angle * (Math.PI / 180), inX, inY)
+    distanceX = x
+    distanceY = y
+  } else {
+    distanceX = 0
+    distanceY = 0
+  }
+}
+
 export default function init (spawnPosition, onLoad) {
   const map = document.getElementById('map')
-  const WIDTH = window.innerWidth
-  const HEIGHT = window.innerHeight
 
   app = new PIXI.Application(WIDTH, HEIGHT, {
     transparent: true,
@@ -61,14 +92,6 @@ export default function init (spawnPosition, onLoad) {
   const graphics = new PIXI.Graphics()
   let startX
   let startY
-
-  // let counter = 1
-  // document.addEventListener('mousewheel', (e) => { // eslint-disable-line
-  //   counter += e.wheelDelta < 0 ? -0.05 : 0.05
-  //   counter = (counter >= 0.5 && counter <= 1.5 && counter) || (counter < 0.5 && 0.5) || (counter > 1.5 && 1.5)
-  //   container.scale.x = counter
-  //   container.scale.y = counter
-  // })
 
   app.stage.displayList = new PIXI.DisplayList()
 
@@ -96,8 +119,6 @@ export default function init (spawnPosition, onLoad) {
       graphics.lineStyle(2, 0x00CC00, 0.5)
       graphics.beginFill(0x33FF33, 0.2)
       graphics.drawRect(startX, startY, x - startX, y - startY)
-      // container.x += e.data.originalEvent.movementX
-      // container.y += e.data.originalEvent.movementY
 
       if (Math.abs(startX - x) + Math.abs(startY - y) > 2) {
         getSelectedHexIds().forEach((id) => {
@@ -105,13 +126,31 @@ export default function init (spawnPosition, onLoad) {
         })
 
         me.ownedHexIds.forEach((id) => {
-          if (isInside(grid[id], { startX, startY, endX: x, endY: y }, scale)) {
+          if (isInside(grid[id], {
+              startX: startX - container.x,
+              startY: startY - container.y,
+              endX: x - container.x,
+              endY: y - container.y
+          }, scale)) {
             grid[id].select()
           }
         })
       }
     }
   }
+
+  interval = setInterval(() => {
+    if (distanceX || distanceY) {
+      container.x -= distanceX
+      container.y -= distanceY
+      container.x = -container.x + WIDTH > 1190 * scale ? -((1190 * scale) - WIDTH) : container.x
+      container.y = -container.y + HEIGHT > 1050 * scale ? -((1050 * scale) - HEIGHT) : container.y
+      container.x = container.x > 0 ? 0 : container.x
+      container.y = container.y > 0 ? 0 : container.y
+    }
+  }, 33)
+
+  window.addEventListener('mousemove', scrollScreen)
 
   listener()
     .on(GET_MAP, ({ map: gridMap }) => {
@@ -126,24 +165,9 @@ export default function init (spawnPosition, onLoad) {
         })
 
       setTimeout(onLoad, Math.floor(Math.random() * 2000) + 2000)
-
-      // console.log(spawnPosition, grid[spawnPosition])
-      //
-      // container.x = grid[spawnPosition].x
-      // container.y = grid[spawnPosition].y
-
-      // me.register(spawnPosition)
-    })
-    .on('REGISTER', ({ playerId }) => {
-      // sessionStorage.setItem('id', playerId)
-      // me.id = playerId
-      // me.registered = true
     })
     .on('ERROR_MESSAGE', ({ message }) => {
       store.dispatch(addToQueue(message))
-    })
-    .on('PLAYER_REGISTERED', ({ hexId, player }) => {
-      // grid[hexId].changeOwner(player)
     })
     .on('CHANGE_HEX_ARMY_VALUE', ({ player, hexId, armyValue, moveId, from }) => {
       if (grid[hexId]) {
@@ -173,4 +197,5 @@ export default function init (spawnPosition, onLoad) {
 
 export function reset () {
   listener().reset()
+  window.clearInterval(interval)
 }

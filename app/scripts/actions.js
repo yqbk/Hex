@@ -1,6 +1,7 @@
+export const CONNECTED = 'CONNECTED'
 export const GET_MAP = 'GET_MAP'
 export const QUEUE_JOINED = 'QUEUE_JOINED'
 export const START_COUNTDOWN = 'START_COUNTDOWN'
 export const LOADING_SCREEN = 'LOADING_SCREEN'
-export const MAP_LOADED = 'MAP_LOADED'
+export const UPDATE_GAME = 'UPDATE_GAME'
 export const WINNER = 'WINNER'

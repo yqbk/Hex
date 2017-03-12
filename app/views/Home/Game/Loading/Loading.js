@@ -12,8 +12,12 @@ class Loading extends Component {
       <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
         <div className={style.container}>
           {
-            game.players.map(player => (
-              <div key={player.username} className={style.arms} style={{ backgroundColor: `#${player.color}` }}>
+            game.players.map((player, i) => (
+              <div
+                key={`${player.username}-${i}`}
+                className={style.arms}
+                style={{ backgroundColor: `#${player.color}` }}
+              >
                 <div className={style.player}>
                   <span>{player.username}</span>
                   <span>{player.status}</span>

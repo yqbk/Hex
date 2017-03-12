@@ -1,17 +1,20 @@
-import { QUEUE_JOINED, MAP_LOADED, GET_MAP } from './actions'
+import { QUEUE_JOINED, UPDATE_GAME, GET_MAP } from './actions'
 
 const protocol = (window.location.protocol === 'https:') ? 'wss:' : 'ws:'
 const ws = new WebSocket(`${protocol}//${location.host}`, 'echo-protocol')
 
-ws.onopen = () => {}
 ws.onclose = () => {}
 
 let callbacks = {}
 
-export default function listener () {
+export default function listener (onConnect = () => {}) {
   ws.onmessage = (evt) => {
     const buffer = JSON.parse(evt.data)
     buffer.forEach(action => (callbacks[action.type] ? callbacks[action.type](action.payload) : null))
+  }
+
+  ws.onopen = () => {
+    onConnect()
   }
 
   return {
@@ -47,5 +50,5 @@ export function joinQueue (username) {
 }
 
 export function mapLoaded (roomId) {
-  ws.send(createRequest(MAP_LOADED, { roomId }))
+  ws.send(createRequest(UPDATE_GAME, { roomId }))
 }

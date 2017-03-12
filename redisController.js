@@ -47,13 +47,14 @@ async function checkWinner (roomId) {
 
     const playerFields = Object.keys(room.castles).filter(key => room.castles[key])
 
-    if (playerFields.length > 1 && winner) {
+    if (playerFields.length >= room.players.length && winner) {
       console.log('winner', winner)
       const player = socketServer.getPlayer(winner)
       room.winner = _.omit(player, ['socket'])
+    }
+
+    if (room.winner) {
       socketServer.emit(roomId, [{ type: actions.WINNER, payload: { room } }])
-    } else {
-      console.log('winner', winner, playerFields, room)
     }
   } catch (err) {
     console.error(err)
@@ -100,7 +101,7 @@ async function register (id, roomId, { hexId }) {
       spawnArmy(roomId, hexId)
       const room = socketServer.getRoom(roomId)
       socketServer.addRoom(roomId, { castles: Object.assign({}, room.castles, { [hexId]: hex.owner.id }) })
-      // checkWinner(roomId)
+      checkWinner(roomId)
 
       // socketServer.emit(roomId, [{ type: 'PLAYER_REGISTERED', payload: { hexId, player } }])
     } catch ({ message }) {
@@ -356,7 +357,7 @@ async function startDuel (player1Id, player2Id, availableRoom) {
     // room.players.forEach((player) => {
     //   const spawnPosition = spawnPositions.pop()
     //   register(player.id, roomId, { hexId: spawnPosition })
-    //   socketServer.send(player.id, [{ type: actions.MAP_LOADED, payload: { room: { ...room, spawnPosition } } }])
+    //   socketServer.send(player.id, [{ type: actions.UPDATE_GAME, payload: { room: { ...room, spawnPosition } } }])
     // })
 
     const players = [player1, player2].map(player => ({
@@ -407,7 +408,7 @@ async function playerLoadedMap (id, roomId) {
         : player
     ))
 
-    socketServer.emit(roomId, [{ type: actions.MAP_LOADED, payload: { room } }])
+    socketServer.emit(roomId, [{ type: actions.UPDATE_GAME, payload: { room } }])
 
     const notLoadedPlayers = room.players.filter(player => player.status !== 'loaded')
     if (!notLoadedPlayers.length) {
@@ -420,7 +421,7 @@ async function playerLoadedMap (id, roomId) {
       // await new Promise(resolve => setTimeout(resolve, 3000))
       room.players.forEach((player) => {
         register(player.id, roomId, { hexId: player.spawnPosition })
-        socketServer.send(player.id, [{ type: actions.MAP_LOADED, payload: { room } }])
+        socketServer.send(player.id, [{ type: actions.UPDATE_GAME, payload: { room } }])
       })
     }
   } catch (err) {

@@ -1,3 +1,4 @@
+const _ = require('lodash')
 const express = require('express')
 const http = require('http')
 const history = require('connect-history-api-fallback')
@@ -64,14 +65,20 @@ socketServer.listener(server)
     }
     await checkQueue()
   })
-  .on(actions.MAP_LOADED, (id, roomId) => {
+  .on(actions.UPDATE_GAME, (id, roomId) => {
     redisController.playerLoadedMap(id, roomId)
-  })
-  .on('REGISTER', (id, roomId, { name, hexId }) => {
-    // redisController.register(id, roomId, { name, hexId })
   })
   .on('ARMY_MOVE', (id, roomId, { from, to, number, patrol }) => {
     const moveId = uuid.v1()
     redisController.stopMove(id, roomId, { hexId: from })
     redisController.armyMove(id, roomId, { from, to, number, patrol, moveId }, from)
+  })
+  .on(actions.GET_ROOM, (id, roomId, { roomId: reqRoomId }) => {
+    console.log(id, roomId, reqRoomId)
+    const room = socketServer.getRoom(reqRoomId)
+    // console.log(room, reqRoomId)
+
+    if (room && _.find(room.players, { id })) {
+      socketServer.send(id, [{ type: actions.UPDATE_GAME, payload: { room } }])
+    }
   })

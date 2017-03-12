@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { PropTypes } from 'react'
 
 import style from './WinnerScreen.scss'
 
@@ -11,6 +11,10 @@ function WinnerScreen ({ winner }) {
       </div>
     </div>
   )
+}
+
+WinnerScreen.propTypes = {
+  winner: PropTypes.object.isRequired
 }
 
 export default WinnerScreen

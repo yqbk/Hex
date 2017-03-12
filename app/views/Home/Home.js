@@ -14,15 +14,17 @@ class Home extends Component {
     super()
 
     this.handleNameChange = this.handleNameChange.bind(this)
+    this.handleConnect = this.handleConnect.bind(this)
 
     this.state = {
-      username: sessionStorage.getItem('username')
+      connected: false,
+      username: localStorage.getItem('username')
     }
   }
 
   componentDidMount () {
     const { dispatch } = this.props
-    listener()
+    listener(this.handleConnect)
       .on(LOADING_SCREEN, ({ room }) => {
         dispatch(setCurrentGame(room))
         sessionStorage.setItem('roomId', room.roomId)
@@ -35,16 +37,25 @@ class Home extends Component {
     this.setState({ username })
   }
 
+  handleConnect () {
+    this.setState({
+      connected: true
+    })
+  }
+
   render () {
-    const { username } = this.state
+    const { connected, username } = this.state
     const { children } = this.props
     return (
-      <div>
-        {
-          (username && React.cloneElement(children, { username, onNameChange: this.handleNameChange })) ||
-          (<Name onNameChange={this.handleNameChange} />)
-        }
-      </div>
+      connected
+        ?
+          <div>
+            {
+              (username && React.cloneElement(children, { username, onNameChange: this.handleNameChange })) ||
+              (<Name onNameChange={this.handleNameChange} />)
+            }
+          </div>
+        : null
     )
   }
 }
