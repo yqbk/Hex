@@ -10,7 +10,17 @@ let selectedHexIds = []
 
 let ctrlPressed = false
 
-const displayGroupsList = ['hexex', 'borders', 'battleIcons', 'armyNumbers', 'armyIcons', 'shadows', 'castles']
+const displayGroupsList = [
+  'hexex',
+  'borders',
+  'battleIcons',
+  'castles',
+  'armyNumbers',
+  'armyIcons',
+  'shadows',
+  'shadowCastles'
+]
+
 const displayGroups = displayGroupsList.reduce((acc, curr, index) => ({
   ...acc,
   [curr]: new PIXI.DisplayGroup(index)
@@ -56,6 +66,7 @@ class Hex {
     this.handleClick = this.handleClick.bind(this)
     this.handleMouseOver = this.handleMouseOver.bind(this)
     this.handleMouseLeave = this.handleMouseLeave.bind(this)
+    this.changeShadowVisibility = this.changeShadowVisibility.bind(this)
 
     this.container = new PIXI.Container()
 
@@ -95,6 +106,10 @@ class Hex {
       this.castle = new PIXI.Sprite(PIXI.loader.resources.castle.texture)
       this.initializeItem(this.castle, this.hex.x, this.hex.y, 0.1, 'castles')
       this.container.addChild(this.castle)
+
+      this.shadowCastle = new PIXI.Sprite(PIXI.loader.resources.castle.texture)
+      this.initializeItem(this.shadowCastle, this.hex.x, this.hex.y, 0.1, 'shadowCastles')
+      this.container.addChild(this.shadowCastle)
     }
 
     this.armyNumber = new PIXI.Text(army || 0, { ...armyTextStyle, fill: owner ? `#${owner.color}` : '#000000' })
@@ -116,7 +131,7 @@ class Hex {
 
     this.shadow = new PIXI.Sprite(PIXI.loader.resources[type].texture)
     this.initializeItem(this.shadow, this.hex.x, this.hex.y, 0.5, 'shadows')
-    this.shadow.tint = '0x898989'
+    this.shadow.tint = 0x898989
     this.container.addChild(this.shadow)
 
     this.container.interactive = true
@@ -198,7 +213,6 @@ class Hex {
     if (!selectedHexIds.length || !selectedHexIds.includes(this.id)) {
       this.hex.tint = 0xFFFFFF
     }
-    // this.clearDestinations()
   }
 
   changeOwner (owner, value) {
@@ -215,11 +229,17 @@ class Hex {
     } else {
       me.ownedHexIds = me.ownedHexIds.filter(id => id !== this.id)
     }
-    // this.reinitializeBordersWithNeighbours()
   }
 
   changeHexTint (color, { id }) {
     this.grid[id].hex.tint = color
+  }
+
+  changeShadowVisibility (visible) {
+    this.shadow.visible = visible
+    if (this.shadowCastle) {
+      this.shadowCastle.visible = visible
+    }
   }
 
   changeArmyValue (value, { player, moveId, from }) {
@@ -228,50 +248,31 @@ class Hex {
     this.armyNumber.visible = !!value
     this.armyIcon.scale.set(getArmyIconScale(value))
     this.armyIcon.visible = !!value
-    this.container.buttonMode = !!value
+    this.container.buttonMode = !!value && player && player.id === me.id
     this.changeOwner(player, value)
-
-    // if (value) {
-    //   this.shadow.visible = false
-    //   console.log(this.neighbours)
-    //   this.neighbours.forEach(({ id }) => {
-    //     this.grid[id].shadow.visible = false
-    //   })
-    // } else {
-    //   this.shadow.visible = true
-    //   console.log(this.neighbours)
-    //   this.neighbours.forEach(({ id }) => {
-    //     this.grid[id].shadow.visible = true
-    //   })
-    // }
 
     if (from && selectedHexIds.includes(from)) {
       this.grid[from].deselect()
       this.select()
     }
 
-    this.shadow.visible = true
+    this.changeShadowVisibility(true)
     this.neighbours.forEach(({ id }) => {
-      this.grid[id].shadow.visible = true
+      this.grid[id].changeShadowVisibility(true)
       this.grid[id].neighbours.forEach(({ id: nId }) => {
-        this.grid[nId].shadow.visible = true
+        this.grid[nId].changeShadowVisibility(true)
       })
     })
 
     me.ownedHexIds.forEach((id) => {
-      this.grid[id].shadow.visible = false
+      this.grid[id].changeShadowVisibility(false)
       this.grid[id].neighbours.forEach(({ id: nId }) => {
-        this.grid[nId].shadow.visible = false
+        this.grid[nId].changeShadowVisibility(false)
         this.grid[nId].neighbours.forEach(({ id: nnId }) => {
-          this.grid[nnId].shadow.visible = false
+          this.grid[nnId].changeShadowVisibility(false)
         })
       })
     })
-
-    // console.log(me.ownedHexIds)
-    // if (hoveredHex === this.id) {
-    //   getDestination(this.moveId)
-    // }
   }
 
   select () {
@@ -292,7 +293,6 @@ class Hex {
   render (globalContainer, grid) {
     globalContainer.addChild(this.container)
     this.grid = grid
-    // this.reinitializeBorders()
   }
 }
 

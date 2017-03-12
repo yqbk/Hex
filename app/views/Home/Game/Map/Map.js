@@ -14,13 +14,11 @@ class Map extends Component {
     const { dispatch, game } = this.props
     preload()
       .then(() => {
-        console.log(game)
         init((_.find(game.players, { id: me.id }) || {}).spawnPosition, () => mapLoaded(game.roomId))
       })
 
     listener()
       .on(WINNER, ({ room }) => {
-        console.log(room)
         dispatch(setCurrentGame(room))
         reset()
       })

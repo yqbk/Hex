@@ -1,4 +1,5 @@
-import { QUEUE_JOINED, UPDATE_GAME, GET_MAP } from './actions'
+import _ from 'lodash'
+import { QUEUE_JOINED, UPDATE_GAME, GET_MAP, LOADING_SCREEN } from './actions'
 
 const protocol = (window.location.protocol === 'https:') ? 'wss:' : 'ws:'
 const ws = new WebSocket(`${protocol}//${location.host}`, 'echo-protocol')
@@ -23,7 +24,7 @@ export default function listener (onConnect = () => {}) {
       return this
     },
     reset: function () { // eslint-disable-line
-      callbacks = {}
+      callbacks = _.pick(callbacks, [LOADING_SCREEN])
       return this
     }
   }

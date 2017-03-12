@@ -34,7 +34,6 @@ class Menu extends Component {
         })
       })
       .on(START_COUNTDOWN, () => {
-        console.log('start countdown')
         this.startingScreen = true
         this.setState({
           queueJoined: false,

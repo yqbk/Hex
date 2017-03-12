@@ -1,5 +1,3 @@
-import { register } from '../sockets'
-
 class Player {
   constructor () {
     this.name = ''
@@ -8,11 +6,10 @@ class Player {
     this.ownedCastles = []
   }
 
-  // register (hexId) {
-  //   if (!this.registered) {
-  //     register(this.name, hexId)
-  //   }
-  // }
+  defaults () {
+    this.ownedHexIds = []
+    this.ownedCastles = []
+  }
 }
 
 export default new Player()

@@ -38,6 +38,26 @@ async function getMap (id, roomId) {
   }
 }
 
+async function clearRoom (roomId) {
+  try {
+    const room = socketServer.getRoom(roomId)
+    if (room) {
+      const { db } = room
+      await client.select(db)
+      await client.flushdb()
+
+      socketServer.setPlayers(_.omit(socketServer.getPlayers(), room.players.map(player => player.id)))
+      socketServer.setRooms(_.omit(socketServer.getRooms(), [roomId]))
+
+      console.log('players', Object.keys(socketServer.getPlayers()).length)
+      console.log('rooms', Object.keys(socketServer.getRooms()).length)
+      console.log(`Room ${db} cleared`)
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 async function checkWinner (roomId) {
   try {
     const room = socketServer.getRoom(roomId)
@@ -53,8 +73,11 @@ async function checkWinner (roomId) {
       room.winner = _.omit(player, ['socket'])
     }
 
+    // console.log(room)
+
     if (room.winner) {
       socketServer.emit(roomId, [{ type: actions.WINNER, payload: { room } }])
+      clearRoom(room.id)
     }
   } catch (err) {
     console.error(err)
@@ -64,22 +87,27 @@ async function checkWinner (roomId) {
 async function spawnArmy (roomId, hexId) {
   lock(`armyAccess${roomId}`, async (done) => {
     try {
-      const { db } = socketServer.getRoom(roomId)
-      await client.select(db)
-      const hex = JSON.parse(await client.getAsync(hexId))
-      const hexArmy = hex.army || 0
-      const nexArmy = hexArmy + 10
-      hex.army = nexArmy > 100 ? hexArmy : nexArmy
-      const player = hex.owner
-      await client.setAsync(hexId, JSON.stringify(hex))
-      socketServer.emit(roomId, [{
-        type: 'CHANGE_HEX_ARMY_VALUE',
-        payload: { player, hexId, armyValue: hex.army }
-      }])
+      const room = socketServer.getRoom(roomId)
+      if (room) {
+        const { db } = socketServer.getRoom(roomId)
+        await client.select(db)
+        const hex = JSON.parse(await client.getAsync(hexId))
+        const hexArmy = hex.army || 0
+        const nexArmy = hexArmy + 10
+        hex.army = nexArmy > 100 ? hexArmy : nexArmy
+        const player = hex.owner
+        await client.setAsync(hexId, JSON.stringify(hex))
+        socketServer.emit(roomId, [{
+          type: 'CHANGE_HEX_ARMY_VALUE',
+          payload: { player, hexId, armyValue: hex.army }
+        }])
 
-      setTimeout(() => {
-        spawnArmy(roomId, hexId)
-      }, 5000)
+        setTimeout(() => {
+          spawnArmy(roomId, hexId)
+        }, 5000)
+
+        checkWinner(room.id)
+      }
     } catch (err) {
       console.error(err)
     }
@@ -353,46 +381,43 @@ async function startDuel (player1Id, player2Id, availableRoom) {
     const player1 = socketServer.getPlayer(player1Id)
     const player2 = socketServer.getPlayer(player2Id)
 
-    const spawnPositions = _.shuffle([20, 76])
-    // room.players.forEach((player) => {
-    //   const spawnPosition = spawnPositions.pop()
-    //   register(player.id, roomId, { hexId: spawnPosition })
-    //   socketServer.send(player.id, [{ type: actions.UPDATE_GAME, payload: { room: { ...room, spawnPosition } } }])
-    // })
+    if (player1 && player2) {
+      const spawnPositions = _.shuffle([20, 76, 200, 88, 177, 26, 98])
 
-    const players = [player1, player2].map(player => ({
-      id: player.id,
-      username: player.username,
-      color: player.color,
-      status: 'joined',
-      spawnPosition: spawnPositions.pop()
-    }))
+      const players = [player1, player2].map(player => ({
+        id: player.id,
+        username: player.username,
+        color: player.color,
+        status: 'joined',
+        spawnPosition: spawnPositions.pop()
+      }))
 
-    const status = 'loading'
+      const status = 'loading'
 
-    const room = {
-      roomId,
-      players,
-      status,
-      db: availableRoom,
-      castles: { 20: null, 76: null, 200: null, 57: null, 177: null, 13: null, 98: null }
+      const room = {
+        roomId,
+        players,
+        status,
+        db: availableRoom,
+        castles: { 20: null, 76: null, 200: null, 88: null, 177: null, 26: null, 98: null }
+      }
+
+      // await client.select(2)
+      // await client.setAsync(roomId, JSON.stringify(room))
+
+      await client.select(availableRoom)
+      await Promise.all(mapFile.map(async (hex) => { await client.setAsync(hex.id, JSON.stringify(hex)) }))
+      console.log('Map inserted into redis')
+
+      socketServer.addRoom(roomId, room)
+      socketServer.send(player1.id, [{ type: actions.START_COUNTDOWN }])
+      socketServer.send(player2.id, [{ type: actions.START_COUNTDOWN }])
+
+      await new Promise(resolve => setTimeout(resolve, 5000))
+
+      socketServer.send(player1.id, [{ type: actions.LOADING_SCREEN, payload: { room } }])
+      socketServer.send(player2.id, [{ type: actions.LOADING_SCREEN, payload: { room } }])
     }
-
-    // await client.select(2)
-    // await client.setAsync(roomId, JSON.stringify(room))
-
-    await client.select(availableRoom)
-    await Promise.all(mapFile.map(async (hex) => { await client.setAsync(hex.id, JSON.stringify(hex)) }))
-    console.log('Map inserted into redis')
-
-    socketServer.addRoom(roomId, room)
-    socketServer.send(player1.id, [{ type: actions.START_COUNTDOWN }])
-    socketServer.send(player2.id, [{ type: actions.START_COUNTDOWN }])
-
-    await new Promise(resolve => setTimeout(resolve, 5000))
-
-    socketServer.send(player1.id, [{ type: actions.LOADING_SCREEN, payload: { room } }])
-    socketServer.send(player2.id, [{ type: actions.LOADING_SCREEN, payload: { room } }])
   } catch (err) {
     console.error(err)
   }
@@ -402,27 +427,29 @@ async function playerLoadedMap (id, roomId) {
   try {
     const room = socketServer.getRoom(roomId)
 
-    room.players = room.players.map(player => (
-      player.id === id
-        ? Object.assign({}, player, { status: 'loaded' })
-        : player
-    ))
+    if (room) {
+      room.players = room.players.map(player => (
+        player.id === id
+          ? Object.assign({}, player, { status: 'loaded' })
+          : player
+      ))
 
-    socketServer.emit(roomId, [{ type: actions.UPDATE_GAME, payload: { room } }])
+      socketServer.emit(roomId, [{ type: actions.UPDATE_GAME, payload: { room } }])
 
-    const notLoadedPlayers = room.players.filter(player => player.status !== 'loaded')
-    if (!notLoadedPlayers.length) {
-      room.status = 'loaded'
-    }
+      const notLoadedPlayers = room.players.filter(player => player.status !== 'loaded')
+      if (!notLoadedPlayers.length) {
+        room.status = 'loaded'
+      }
 
-    socketServer.addRoom(roomId, room)
+      socketServer.addRoom(roomId, room)
 
-    if (!notLoadedPlayers.length) {
-      // await new Promise(resolve => setTimeout(resolve, 3000))
-      room.players.forEach((player) => {
-        register(player.id, roomId, { hexId: player.spawnPosition })
-        socketServer.send(player.id, [{ type: actions.UPDATE_GAME, payload: { room } }])
-      })
+      if (!notLoadedPlayers.length) {
+        // await new Promise(resolve => setTimeout(resolve, 3000))
+        room.players.forEach((player) => {
+          register(player.id, roomId, { hexId: player.spawnPosition })
+          socketServer.send(player.id, [{ type: actions.UPDATE_GAME, payload: { room } }])
+        })
+      }
     }
   } catch (err) {
     console.error(err)
@@ -431,7 +458,7 @@ async function playerLoadedMap (id, roomId) {
 
 async function getRoomRedisNumber () {
   try {
-    const roomDbs = [1, 2, 3, 4, 6]
+    const roomDbs = [1]
     for (let i = 0; i < roomDbs.length; i += 1) {
       await client.select(roomDbs[i]) // eslint-disable-line
       const dbSize = await client.dbsizeAsync() // eslint-disable-line
@@ -445,6 +472,19 @@ async function getRoomRedisNumber () {
   return null
 }
 
+async function checkQueue (playersQueue) {
+  const [p1, p2, ...rest] = playersQueue
+  if (p1 && p2) {
+    const availableRoom = await getRoomRedisNumber()
+    if (availableRoom) {
+      playersQueue = rest
+      startDuel(p1, p2, availableRoom)
+      return playersQueue
+    }
+  }
+  return playersQueue
+}
+
 module.exports = {
   getMap,
   register,
@@ -452,5 +492,7 @@ module.exports = {
   stopMove,
   startDuel,
   playerLoadedMap,
-  getRoomRedisNumber
+  getRoomRedisNumber,
+  checkWinner,
+  checkQueue
 }

@@ -31,6 +31,7 @@ const isInside = ({ x, y }, { startX, startY, endX, endY }, scale) => (
 
 export function preload () {
   return new Promise((resolve) => {
+    PIXI.loader.reset()
     PIXI.loader
       .add('army', 'images/army.png')
       .add('battle', 'images/battle.png')
@@ -90,6 +91,7 @@ export default function init (spawnPosition, onLoad) {
   container.interactive = true
 
   const graphics = new PIXI.Graphics()
+  graphics.displayGroup = new PIXI.DisplayGroup(100)
   let startX
   let startY
 
@@ -183,11 +185,13 @@ export default function init (spawnPosition, onLoad) {
       grid[hexId].destination = destination
       destination.forEach((id) => {
         grid[id].hex.tint = 0x99CCFF
+        grid[id].shadow.tint = 0x99CCFF
       })
     })
     .on('CLEAR_DESTINATION', ({ hexId, destination }) => {
       destination.forEach((id) => {
         grid[id].hex.tint = 0xFFFFFF
+        grid[id].shadow.tint = 0x898989
       })
       grid[hexId].destination = []
     })
@@ -198,4 +202,9 @@ export default function init (spawnPosition, onLoad) {
 export function reset () {
   listener().reset()
   window.clearInterval(interval)
+}
+
+export function destroyGame () {
+  container.destroy(true)
+  me.defaults()
 }

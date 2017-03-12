@@ -14,8 +14,6 @@ const compiler = webpack(config)
 const app = express()
 const server = http.createServer(app)
 
-// app.get('/map', redisController.getMap)
-
 app.use(history({
   index: '/index.html'
 }))
@@ -34,25 +32,37 @@ server.listen(port, '0.0.0.0', (err) => {
   console.log(`Listening on port ${port}`) // eslint-disable-line
 })
 
-let playersQueue = []
-
-async function checkQueue () {
-  const [p1, p2, ...rest] = playersQueue
-  if (p1 && p2) {
-    const availableRoom = await redisController.getRoomRedisNumber()
-    if (availableRoom) {
-      playersQueue = rest
-      redisController.startDuel(p1, p2, availableRoom)
-    }
-  }
-}
-
 const randomColor = () => {
   const number = Math.floor(Math.random() * 16777215) + 1
   return number.toString(16)
 }
 
-socketServer.listener(server)
+let playersQueue = []
+
+const onClose = (socket) => {
+  const player = socketServer.getPlayer(socket.id)
+  const rooms = socketServer.getRooms()
+  const players = socketServer.getPlayers()
+  if (player) {
+    socketServer.setRooms(Object.keys(rooms).reduce((acc, key) => {
+      const room = rooms[key]
+      room.players = room.players.filter(p => p.id !== player.id)
+      room.castles = Object.keys(room.castles).reduce((a, k) => ({
+        ...a,
+        [k]: (room.castles[k] === player.id ? null : room.castles[k])
+      }), {})
+      redisController.checkWinner(room.id)
+      return {
+        ...acc,
+        [key]: room
+      }
+    }, {}))
+    socketServer.setPlayers(_.omit(players, [player.id]))
+    playersQueue = playersQueue.filter(playerId => playerId !== player.id)
+  }
+}
+
+socketServer.listener(server, onClose)
   .on(actions.GET_MAP, (id, roomId) => {
     redisController.getMap(id, roomId)
   })
@@ -60,10 +70,11 @@ socketServer.listener(server)
     const playerId = id || uuid.v4()
     if (!playersQueue.includes(playerId)) {
       playersQueue = [...playersQueue, playerId]
+      socket.id = playerId
       socketServer.addPlayer(playerId, { id: playerId, socket, username, color: randomColor() })
       socketServer.send(playerId, [{ type: actions.QUEUE_JOINED, payload: { id: playerId } }])
     }
-    await checkQueue()
+    playersQueue = await redisController.checkQueue(playersQueue)
   })
   .on(actions.UPDATE_GAME, (id, roomId) => {
     redisController.playerLoadedMap(id, roomId)
@@ -72,13 +83,4 @@ socketServer.listener(server)
     const moveId = uuid.v1()
     redisController.stopMove(id, roomId, { hexId: from })
     redisController.armyMove(id, roomId, { from, to, number, patrol, moveId }, from)
-  })
-  .on(actions.GET_ROOM, (id, roomId, { roomId: reqRoomId }) => {
-    console.log(id, roomId, reqRoomId)
-    const room = socketServer.getRoom(reqRoomId)
-    // console.log(room, reqRoomId)
-
-    if (room && _.find(room.players, { id })) {
-      socketServer.send(id, [{ type: actions.UPDATE_GAME, payload: { room } }])
-    }
   })

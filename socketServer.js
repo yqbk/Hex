@@ -1,8 +1,7 @@
-// const _ = require('lodash')
 const WebSocket = require('ws')
 
-const players = {}
-const rooms = {}
+let players = {}
+let rooms = {}
 
 const getPlayer = id => players[id]
 const getRoom = id => rooms[id]
@@ -36,7 +35,7 @@ function send (playerId, data) {
   }
 }
 
-function listener (server) {
+function listener (server, onClose) {
   const callbacks = {}
   const ws = new WebSocket.Server({ server })
 
@@ -46,9 +45,7 @@ function listener (server) {
       callbacks[type](id, roomId, payload, socket)
     })
 
-    socket.on('close', () => {
-      // players = players.filter(player => player.id !== newPlayerId)
-    })
+    socket.on('close', () => onClose(socket))
   })
 
   return {
@@ -66,5 +63,9 @@ module.exports = {
   send,
   addPlayer,
   getRoom,
-  addRoom
+  addRoom,
+  getRooms: () => rooms,
+  getPlayers: () => players,
+  setRooms: (newRooms) => { rooms = newRooms },
+  setPlayers: (newPlayers) => { players = newPlayers },
 }
