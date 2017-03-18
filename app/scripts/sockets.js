@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { QUEUE_JOINED, UPDATE_GAME, GET_MAP, LOADING_SCREEN } from './actions'
+import * as actions from './actions'
 
 const protocol = (window.location.protocol === 'https:') ? 'wss:' : 'ws:'
 const ws = new WebSocket(`${protocol}//${location.host}`, 'echo-protocol')
@@ -24,7 +24,7 @@ export default function listener (onConnect = () => {}) {
       return this
     },
     reset: function () { // eslint-disable-line
-      callbacks = _.pick(callbacks, [LOADING_SCREEN])
+      callbacks = _.pick(callbacks, [actions.LOADING_SCREEN])
       return this
     }
   }
@@ -35,7 +35,7 @@ function createRequest (type, payload) {
 }
 
 export function getMap () {
-  ws.send(createRequest(GET_MAP))
+  ws.send(createRequest(actions.GET_MAP))
 }
 
 export function register (name, hexId) {
@@ -47,9 +47,9 @@ export function armyMove (patrol, from, to, number) {
 }
 
 export function joinQueue (username) {
-  ws.send(createRequest(QUEUE_JOINED, { username }))
+  ws.send(createRequest(actions.JOIN_QUEUE, { username }))
 }
 
 export function mapLoaded (roomId) {
-  ws.send(createRequest(UPDATE_GAME, { roomId }))
+  ws.send(createRequest(actions.UPDATE_GAME, { roomId }))
 }
