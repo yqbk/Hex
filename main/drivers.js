@@ -58,7 +58,7 @@ const makeWSDriver = (server) => {
 const makeJoinQueueDriver = () => joinQueue$ => xs.create({
   start: (listener) => {
     joinQueue$.addListener({
-      next: async ([message, player, playersQueue]) => {
+      next: async ([message, player]) => {
         const { socket } = message
         socket.id = player.id
 
@@ -67,7 +67,7 @@ const makeJoinQueueDriver = () => joinQueue$ => xs.create({
         //   .set(player.id, JSON.stringify(player))
         //   .exec()
 
-        listener.next({ type: actions.NEW_PLAYERS_QUEUE, playersQueue })
+        listener.next({ type: actions.ADD_PLAYERS, payload: { type: actions.ADD_PLAYERS, ids: [player.id] } })
         listener.next({ type: actions.SEND, payload: { type: actions.QUEUE_JOINED, id: player.id } })
       },
       error: () => {},

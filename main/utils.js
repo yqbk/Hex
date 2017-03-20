@@ -2,9 +2,11 @@ const xs = require('xstream').default
 
 const randomColor = () => (Math.floor(Math.random() * 16777215) + 1).toString(16)
 
+const accept = (s$, types) => s$.filter(v => types.includes(v.type)).map(v => v.payload)
+
 const combine = (...streams) => {
   let store = streams.map(() => undefined)
-  const result$ = xs.merge(...(streams.map((stream, id) => stream.map(value => ({ id, value })))))
+  const result$ = xs.merge(...(streams.map((s$, id) => s$.map(value => ({ id, value })))))
   return xs.create({
     start: (listener) => {
       result$.addListener({
@@ -26,5 +28,6 @@ const combine = (...streams) => {
 
 module.exports = {
   randomColor,
+  accept,
   combine
 }
