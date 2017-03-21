@@ -14,14 +14,15 @@ const main = (sources) => {
 
   const joinQueue$ = utils
     .combine(utils.accept(sources.WS, [actions.JOIN_QUEUE]), playersQueue$)
-    .map(([message, playersQueue]) => ({ message, id: message.id || uuid.v4(), playersQueue }))
+    .map(([payload, playersQueue]) => ({ payload, id: payload.id || uuid.v4(), playersQueue }))
     .filter(({ id, playersQueue }) => !playersQueue.includes(id))
-    .map(({ message, id }) => [message, { id, username: message.payload.username, color: utils.randomColor() }])
+    .map(({ payload, id }) => [payload, { id, username: payload.username, color: utils.randomColor() }])
 
   const ws$ = utils.accept(xs.merge(sources.JOIN_QUEUE), [actions.SEND])
 
   const sinks = {
     JOIN_QUEUE: joinQueue$,
+    START_GAME: playersQueue$,
     WS: ws$
   }
   return sinks
@@ -30,7 +31,8 @@ const main = (sources) => {
 const start = (server) => {
   cycle.run(main, {
     WS: drivers.makeWSDriver(server),
-    JOIN_QUEUE: drivers.makeJoinQueueDriver()
+    JOIN_QUEUE: drivers.makeJoinQueueDriver(),
+    START_GAME: drivers.makeStartGameDriver()
   })
 }
 

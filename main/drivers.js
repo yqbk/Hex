@@ -13,8 +13,8 @@ const connection = (ws) => {
   const buffer = []
   ws.on('connection', (socket) => {
     socket.on('message', (message) => {
-      const { id, roomId, type, payload } = JSON.parse(message)
-      buffer.forEach(func => func({ type, id, roomId, payload, socket }))
+      const { type, payload } = JSON.parse(message)
+      buffer.forEach(func => func({ type, payload: { type, socket, ...payload } }))
     })
 
     // socket.on('close', () => onClose(socket))
@@ -22,7 +22,7 @@ const connection = (ws) => {
 
   return {
     send: (message) => {
-      console.log('Message sent', message)
+      console.log('Message sent')
     },
     onDataReceive: (func) => {
       buffer.push(func)
@@ -58,8 +58,8 @@ const makeWSDriver = (server) => {
 const makeJoinQueueDriver = () => joinQueue$ => xs.create({
   start: (listener) => {
     joinQueue$.addListener({
-      next: async ([message, player]) => {
-        const { socket } = message
+      next: async ([payload, player]) => {
+        const { socket } = payload
         socket.id = player.id
 
         // await client.multi()
@@ -77,7 +77,23 @@ const makeJoinQueueDriver = () => joinQueue$ => xs.create({
   stop: () => {}
 })
 
+const makeStartGameDriver = () => playersQueue$ => xs.create({
+  start: (listener) => {
+    playersQueue$.addListener({
+      next: async (playersQueue) => {
+        console.log(playersQueue)
+        if (playersQueue.length >= 3) {
+          listener.next({ type: actions.REMOVE_PLAYERS, payload: { type: actions.REMOVE_PLAYERS, number: 2 } })
+          console.log('Game started')
+        }
+      }
+    })
+  },
+  stop: () => {}
+})
+
 module.exports = {
   makeWSDriver,
-  makeJoinQueueDriver
+  makeJoinQueueDriver,
+  makeStartGameDriver
 }

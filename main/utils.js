@@ -14,8 +14,9 @@ const combine = (...streams) => {
           const { id, value } = data
           store[id] = value
           if (!store.filter(v => v === undefined).length) {
-            listener.next(store)
+            const next = store.slice()
             store = streams.map(() => undefined)
+            listener.next(next)
           }
         },
         error: () => {},

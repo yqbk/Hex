@@ -31,7 +31,14 @@ export default function listener (onConnect = () => {}) {
 }
 
 function createRequest (type, payload) {
-  return JSON.stringify({ id: sessionStorage.getItem('id'), roomId: sessionStorage.getItem('roomId'), type, payload })
+  return JSON.stringify({
+    type,
+    payload: {
+      id: sessionStorage.getItem('id'),
+      roomId: sessionStorage.getItem('roomId'),
+      ...payload
+    }
+  })
 }
 
 export function getMap () {
