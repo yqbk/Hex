@@ -16,8 +16,7 @@ class Menu extends Component {
     this.startCooldown = this.startCooldown.bind(this)
 
     this.state = {
-      queueJoined: false,
-      gameFound: false,
+      status: 0,
       cooldown: 5
     }
 
@@ -29,16 +28,15 @@ class Menu extends Component {
       .on(QUEUE_JOINED, ({ id }) => {
         sessionStorage.setItem('id', id)
         me.id = id
-        this.setState({
-          queueJoined: true
-        })
+        this.setState(({ status }) => ({
+          status: status < 1 ? 1 : status
+        }))
       })
       .on(START_COUNTDOWN, () => {
         this.startingScreen = true
-        this.setState({
-          queueJoined: false,
-          gameFound: true
-        }, () => setTimeout(this.startCooldown, 1000))
+        this.setState(({ status }) => ({
+          status: status < 2 ? 2 : status
+        }), () => setTimeout(this.startCooldown, 1000))
       })
   }
 
@@ -69,16 +67,18 @@ class Menu extends Component {
 
   render () {
     const { username } = this.props
-    const { queueJoined, gameFound, cooldown } = this.state
+    const { status, cooldown } = this.state
     return (
       <div className={style.container}>
         <div>
           Hello <b>{username}</b>!
         </div>
-        <button onClick={this.handleReset}>Reset name</button>
-        <button onClick={this.joinQueue}>Play</button>
-        {queueJoined && <div>Queue Joined</div>}
-        {gameFound && <div>Game Found! Starting in {cooldown}</div>}
+        {
+          status === 0 &&
+            [<button onClick={this.handleReset}>Reset name</button>, <button onClick={this.joinQueue}>Play</button>]
+        }
+        { status === 1 && <div>Queue Joined</div> }
+        { status === 2 && <div>Game Found! Starting in {cooldown}</div> }
       </div>
     )
   }

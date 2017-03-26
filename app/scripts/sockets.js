@@ -10,8 +10,10 @@ let callbacks = {}
 
 export default function listener (onConnect = () => {}) {
   ws.onmessage = (evt) => {
-    const buffer = JSON.parse(evt.data)
-    buffer.forEach(action => (callbacks[action.type] ? callbacks[action.type](action.payload) : null))
+    const action = JSON.parse(evt.data)
+    if (callbacks[action.type]) {
+      callbacks[action.type](action.payload)
+    }
   }
 
   ws.onopen = () => {

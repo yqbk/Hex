@@ -27,8 +27,26 @@ const combine = (...streams) => {
   })
 }
 
+const getAvailableRoom = async (client) => {
+  const roomDbs = [2]
+  for (let i = 0; i < roomDbs.length; i += 1) {
+    const [status, dbSize] = await client // eslint-disable-line
+      .multi()
+      .select(roomDbs[i])
+      .dbsize()
+      .execAsync()
+
+    if (status === 'OK' && dbSize === 0) {
+      return roomDbs[i]
+    }
+  }
+
+  return null
+}
+
 module.exports = {
   randomColor,
   accept,
-  combine
+  combine,
+  getAvailableRoom
 }

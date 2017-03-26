@@ -14,11 +14,10 @@ class Game extends Component {
   constructor (props) {
     super(props)
 
-    if (!props.game.roomId) {
+    if (!props.game.id) {
       browserHistory.push('/')
     }
   }
-
 
   componentDidMount () {
     const { dispatch } = this.props
@@ -31,7 +30,7 @@ class Game extends Component {
   render () {
     const { game } = this.props
     return (
-      game.roomId
+      game.id
         ?
           <div>
             {game.status === 'loading' && <Loading game={game} />}

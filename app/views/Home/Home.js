@@ -27,8 +27,8 @@ class Home extends Component {
     listener(this.handleConnect)
       .on(LOADING_SCREEN, ({ room }) => {
         dispatch(setCurrentGame(room))
-        sessionStorage.setItem('roomId', room.roomId)
-        browserHistory.push(`/${room.roomId}`)
+        sessionStorage.setItem('roomId', room.id)
+        browserHistory.push(`/${room.id}`)
       })
   }
 
