@@ -2,7 +2,7 @@ const xs = require('xstream').default
 
 const randomColor = () => (Math.floor(Math.random() * 16777215) + 1).toString(16)
 
-const accept = (s$, types) => s$.filter(v => types.includes(v.type)).map(v => v.payload)
+const accept = (s$, types) => s$.filter(v => types.includes(v.type))
 
 const combine = (...streams) => {
   let store = streams.map(() => undefined)

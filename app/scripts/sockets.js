@@ -60,5 +60,5 @@ export function joinQueue (username) {
 }
 
 export function mapLoaded (roomId) {
-  ws.send(createRequest(actions.UPDATE_GAME, { roomId }))
+  ws.send(createRequest(actions.MAP_LOADED, { roomId }))
 }

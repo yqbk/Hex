@@ -23,6 +23,7 @@ class Game extends Component {
     const { dispatch } = this.props
     listener()
       .on(UPDATE_GAME, ({ room }) => {
+        console.log(room)
         dispatch(setCurrentGame(room))
       })
   }

@@ -18,13 +18,17 @@ client.on('connect', async () => {
 
 const connection = (ws) => {
   const buffer = []
+  const bufferClose = []
   ws.on('connection', (socket) => {
     socket.on('message', (message) => {
       const { type, payload } = JSON.parse(message)
+      console.log(type)
       buffer.forEach(func => func({ type, payload: { type, socket, ...payload } }))
     })
 
-    // socket.on('close', () => onClose(socket))
+    socket.on('close', () => {
+      bufferClose.forEach(func => func(socket.id))
+    })
   })
 
   return {
@@ -42,7 +46,6 @@ const connection = (ws) => {
 
         ws.clients.forEach((socket) => {
           if (sockets.includes(socket.id)) {
-            // console.log(JSON.stringify(message.data))
             socket.send(JSON.stringify(message.data))
           }
         })
@@ -52,6 +55,9 @@ const connection = (ws) => {
     },
     onDataReceive: (func) => {
       buffer.push(func)
+    },
+    onClose: (func) => {
+      bufferClose.push(func)
     }
   }
 }
@@ -63,8 +69,8 @@ const makeWSDriver = (server) => {
 
   return (outgoing$) => {
     outgoing$.addListener({
-      next: (message) => {
-        socket.send(message)
+      next: ({ payload }) => {
+        socket.send(payload)
       },
       error: () => {},
       complete: () => {}
@@ -75,11 +81,65 @@ const makeWSDriver = (server) => {
         socket.onDataReceive((data) => {
           listener.next(data)
         })
+        socket.onClose((id) => {
+          if (id) {
+            listener.next({ type: actions.PLAYER_LEFT, payload: { id } })
+          }
+        })
       },
       stop: () => {}
     })
   }
 }
+
+const makePlayerLeftDriver = () => playerLeft$ => xs.create({
+  start: (listener) => {
+    playerLeft$.addListener({
+      next: ({ payload: { id } }) => {
+        listener.next({ type: actions.REMOVE_PLAYERS, payload: { type: actions.REMOVE_PLAYERS, ids: [id] } })
+      },
+      error: () => {},
+      complete: () => {}
+    })
+  },
+  stop: () => {}
+})
+
+const makeGetMapDriver = () => getMap$ => xs.create({
+  start: (listener) => {
+    getMap$.addListener({
+      next: async ({ id, room: { db } }) => {
+        try {
+          const [status, mapKeys] = await client.multi().select(db).keys('*').execAsync()
+          if (status === 'OK') {
+            const map = {}
+            for (const key in mapKeys) { // eslint-disable-line
+              const [s, v] = await client.multi().select(db).get(key).execAsync() // eslint-disable-line
+              if (s === 'OK') {
+                map[key] = JSON.parse(v)
+              }
+            }
+            listener.next({
+              type: actions.SEND,
+              payload: {
+                playersIds: [id],
+                data: {
+                  type: actions.GET_MAP,
+                  payload: { map }
+                }
+              }
+            })
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      },
+      error: () => {},
+      complete: () => {}
+    })
+  },
+  stop: () => {}
+})
 
 const makeJoinQueueDriver = () => joinQueue$ => xs.create({
   start: (listener) => {
@@ -120,20 +180,46 @@ const makeFindRoomDriver = () => findRoom$ => xs.create({
       next: async (playersIds) => {
         const db = await utils.getAvailableRoom(client)
         if (db) {
-          const data = await Promise.all(playersIds.map(id => client.multi().select(0).get(id).execAsync()))
-          const players = data.reduce((acc, curr) => (
-            curr[0] === 'OK' && curr[1]
-              ? [...acc, ...(curr[0] === 'OK' ? [JSON.parse(curr[1])] : [])]
-              : acc
-          ), [])
+          const players = (await Promise.all(playersIds.map(id => client.multi().select(0).get(id).execAsync())))
+            .reduce((acc, curr) => (
+              curr[0] === 'OK' && curr[1] ? [...acc, JSON.parse(curr[1])] : acc
+            ), [])
 
-          if (Object.keys(players).length === playersIds.length) {
-            listener.next({
-              type: actions.REMOVE_PLAYERS,
-              payload: { type: actions.REMOVE_PLAYERS, number: players.length }
-            })
+          if (players.length === playersIds.length) {
+            listener.next({ type: actions.REMOVE_PLAYERS, payload: { type: actions.REMOVE_PLAYERS, ids: playersIds } })
             listener.next({ type: actions.START_GAME, payload: { db, players } })
           }
+        }
+      }
+    })
+  },
+  stop: () => {}
+})
+
+const makeSetRoomDriver = () => setRoom$ => xs.create({
+  start: (listener) => {
+    setRoom$.addListener({
+      next: async ({ type, payload }) => {
+        const { room } = payload
+        const [status] = await client.multi().select(1).set(room.id, JSON.stringify(room)).execAsync()
+        if (status === 'OK') {
+          console.log(`Room ${room.id} updated`)
+          listener.next({ type, payload: { ...payload, room } })
+        }
+      }
+    })
+  },
+  stop: () => {}
+})
+
+const makeGetRoomDriver = () => getRoom$ => xs.create({
+  start: (listener) => {
+    getRoom$.addListener({
+      next: async ({ type, payload }) => {
+        const { roomId } = payload
+        const [status, room] = await client.multi().select(1).get(roomId).execAsync()
+        if (status === 'OK') {
+          listener.next({ type, payload: { ...payload, room: JSON.parse(room) } })
         }
       }
     })
@@ -146,29 +232,24 @@ const makeStartGameDriver = () => playersQueue$ => xs.create({
     playersQueue$.addListener({
       next: async (room) => {
         const playersIds = Object.keys(room.players)
-        const [status] = await client.multi().select(1).set(room.id, JSON.stringify(room)).execAsync()
 
-        if (status === 'OK') {
-          console.log(`Room ${room.id} created`)
+        await Promise.all(mapFile.map(async (hex) => {
+          await client.multi().select(room.db).set(hex.id, JSON.stringify(hex)).execAsync()
+        }))
+        console.log('Map inserted into redis')
 
-          await Promise.all(mapFile.map(async (hex) => {
-            await client.multi().select(room.db).set(hex.id, JSON.stringify(hex)).execAsync()
-          }))
-          console.log('Map inserted into redis')
+        listener.next({
+          type: actions.SEND,
+          payload: { playersIds, data: { type: actions.START_COUNTDOWN } }
+        })
 
-          listener.next({
-            type: actions.SEND,
-            payload: { playersIds, data: { type: actions.START_COUNTDOWN } }
-          })
+        await new Promise(resolve => setTimeout(resolve, 5000))
 
-          await new Promise(resolve => setTimeout(resolve, 5000))
-
-          listener.next({
-            type: actions.SEND,
-            payload: { playersIds, data: { type: actions.LOADING_SCREEN, payload: { room } } }
-          })
-          console.log('Game started')
-        }
+        listener.next({
+          type: actions.SEND,
+          payload: { playersIds, data: { type: actions.LOADING_SCREEN, payload: { room } } }
+        })
+        console.log('Game started')
       },
       error: () => {},
       complete: () => {}
@@ -179,7 +260,11 @@ const makeStartGameDriver = () => playersQueue$ => xs.create({
 
 module.exports = {
   makeWSDriver,
+  makePlayerLeftDriver,
   makeJoinQueueDriver,
   makeFindRoomDriver,
-  makeStartGameDriver
+  makeStartGameDriver,
+  makeSetRoomDriver,
+  makeGetMapDriver,
+  makeGetRoomDriver
 }
