@@ -1,12 +1,20 @@
 .container {
+  height: 100%;
+  width: 100%;
+}
+
+.loginContainer{
   position: fixed;
   width: 300px;
   height: auto;
   left: 50%;
   top: 50%;
+
+  background-color: rgba(255, 255, 255, 0.7);
   transform: translate(-50%, -50%);
 
-  border: 2px solid black;
+  border: 10px solid rgba(0, 0, 0, .4);
+  border-radius: 5px;
   padding: 10px;
   box-sizing: border-box;
 
@@ -17,7 +25,39 @@
   & > * {
     margin-bottom: 5px;
     margin-top: 5px;
+
+    font-family: "Trebuchet MS", Helvetica, sans-serif;
+    border: none;
+    text-decoration: none;
   }
+}
+
+.welcomeContainer{
+  flex-direction: row;
+  font-family: Impact, Charcoal, sans-serif;
+  font-size: xx-large;
+}
+
+.playButton{
+  font-size: large;
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, .2);
+}
+
+.resetButton {
+  font-size: small;
+  background-color: rgba(0, 0, 0, .1);
+}
+
+.backgroundVideo{
+  height: 100%;
+  width: 100%;
+  float: left;
+  top: 0;
+  padding: none;
+  position: fixed;
+  z-index: 0;
+  transform:scale(1.4);
 }
 
 .input {

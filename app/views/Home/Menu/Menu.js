@@ -72,13 +72,20 @@ class Menu extends Component {
     const { queueJoined, gameFound, cooldown } = this.state
     return (
       <div className={style.container}>
-        <div>
-          Hello <b>{username}</b>!
+
+
+        <video className={style.backgroundVideo} loop autoPlay>
+          <source src="./background.mp4" />
+        </video>
+        <div className={style.loginContainer}>
+          <div className={style.welcomeContainer}>
+            Hello <b>{username}</b>!
+          </div>
+          <button className={style.playButton} onClick={this.joinQueue}>Play</button>
+          <button className={style.resetButton} onClick={this.handleReset}>Reset name</button>
+          {queueJoined && <div>Queue Joined</div>}
+          {gameFound && <div>Game Found! Starting in {cooldown}</div>}
         </div>
-        <button onClick={this.handleReset}>Reset name</button>
-        <button onClick={this.joinQueue}>Play</button>
-        {queueJoined && <div>Queue Joined</div>}
-        {gameFound && <div>Game Found! Starting in {cooldown}</div>}
       </div>
     )
   }
