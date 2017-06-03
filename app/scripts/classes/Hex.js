@@ -120,7 +120,7 @@ class Hex {
     this.armyIcon = new PIXI.Sprite(PIXI.loader.resources.army.texture)
     this.armyIcon.visible = !!army
     if (owner) {
-      this.armyIcon.tint = `0x${owner.color}`
+      // this.armyIcon.tint = `0x${owner.color}`
     }
     this.initializeItem(this.armyIcon, this.hex.x, this.hex.y - 10, getArmyIconScale(army), 'armyIcons')
     this.container.addChild(this.armyIcon)

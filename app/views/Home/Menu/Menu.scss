@@ -50,14 +50,14 @@
 }
 
 .backgroundVideo{
-  height: 100%;
-  width: 100%;
-  float: left;
-  top: 0;
-  padding: none;
   position: fixed;
+
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+
   z-index: 0;
-  transform:scale(1.4);
 }
 
 .input {

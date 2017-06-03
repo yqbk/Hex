@@ -33,13 +33,13 @@ export function preload () {
   return new Promise((resolve) => {
     PIXI.loader.reset()
     PIXI.loader
-      .add('army', 'images/army.png')
+      .add('army', 'images/army.svg')
       .add('battle', 'images/battle.png')
       .add('border', 'images/border.png')
       .add('castle', 'images/castle.svg')
       .add('grass', 'images/grass.png')
       .add('sand', 'images/sand.png')
-      .add('trees', 'images/trees.png')
+      .add('trees', 'images/trees.svg')
       .add('water', 'images/water.png')
       .once('complete', () => {
         resolve()
@@ -72,6 +72,10 @@ function scrollScreen (e) {
   }
 }
 
+function zoomScreen (e) {
+
+}
+
 export default function init (spawnPosition, onLoad) {
   const map = document.getElementById('map')
 
@@ -83,7 +87,7 @@ export default function init (spawnPosition, onLoad) {
   })
   map.appendChild(app.view)
 
-  const scale = 0.7
+  let scale = 2
 
   container = new PIXI.Container()
   container.scale.x = scale
@@ -140,6 +144,8 @@ export default function init (spawnPosition, onLoad) {
       }
     }
   }
+
+  //todo zoom on mouseWheel
 
   interval = setInterval(() => {
     if (distanceX || distanceY) {

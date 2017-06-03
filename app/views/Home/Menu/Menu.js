@@ -7,6 +7,8 @@ import me from '../../../scripts/classes/Player'
 
 import style from './Menu.scss'
 
+const BACKGROUND_VIDEO = './../../../static/background.mp4'
+
 class Menu extends Component {
   constructor () {
     super()
@@ -75,7 +77,7 @@ class Menu extends Component {
 
 
         <video className={style.backgroundVideo} loop autoPlay>
-          <source src="./background.mp4" />
+          <source src={BACKGROUND_VIDEO} type="video/mp4" />
         </video>
         <div className={style.loginContainer}>
           <div className={style.welcomeContainer}>
