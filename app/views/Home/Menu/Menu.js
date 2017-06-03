@@ -7,7 +7,8 @@ import me from '../../../scripts/classes/Player'
 
 import style from './Menu.scss'
 
-const BACKGROUND_VIDEO = './../../../static/background.mp4'
+// todo move to static folder
+const BACKGROUND_VIDEO = './background.mp4'
 
 class Menu extends Component {
   constructor () {
@@ -73,11 +74,9 @@ class Menu extends Component {
     const { username } = this.props
     const { queueJoined, gameFound, cooldown } = this.state
     return (
-      <div className={style.container}>
-
-
-        <video className={style.backgroundVideo} loop autoPlay>
+      <div className={style.container}>        <video className={style.backgroundVideo} loop autoPlay>
           <source src={BACKGROUND_VIDEO} type="video/mp4" />
+          <mimeMap />
         </video>
         <div className={style.loginContainer}>
           <div className={style.welcomeContainer}>
