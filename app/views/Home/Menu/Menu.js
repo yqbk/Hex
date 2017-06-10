@@ -73,12 +73,18 @@ class Menu extends Component {
   render () {
     const { username } = this.props
     const { queueJoined, gameFound, cooldown } = this.state
+    const normalState = style.loginContainer;
+    const playState = style.loginPlayContainer;
+
     return (
-      <div className={style.container}>        <video className={style.backgroundVideo} loop autoPlay>
-          <source src={BACKGROUND_VIDEO} type="video/mp4" />
-          <mimeMap />
-        </video>
-        <div className={style.loginContainer}>
+      <div className={style.container}>
+        {/*<video className={style.backgroundVideo} loop autoPlay>*/}
+          {/*<source src={BACKGROUND_VIDEO} type="video/mp4" />*/}
+          {/*<mimeMap />*/}
+        {/*</video>*/}
+        <div className={style.background} />
+
+        <div className={queueJoined === true ? playState : normalState}>
           <div className={style.welcomeContainer}>
             Hello <b>{username}</b>!
           </div>

@@ -62,7 +62,7 @@ function scrollScreen (e) {
   if (WIDTH - clientX <= controlPadding || clientX < controlPadding ||
     HEIGHT - clientY <= controlPadding || clientY <= controlPadding) {
     const { inX, inY } = { inX: 0, inY: 0 }
-    const { sX, sY } = { sX: 0, sY: -20 }
+    const { sX, sY } = { sX: 0, sY: -40 }
     const { x, y } = rotate(sX, sY, angle * (Math.PI / 180), inX, inY)
     distanceX = x
     distanceY = y

@@ -1,22 +1,64 @@
 .container {
-  height: 100%;
   width: 100%;
+  height: 100%;
+  //position: fixed;
+  //width: 300px;
+  //height: 300px;
+  //height: auto;
+  //left: 50%;
+  //top: 50%;
+  //
+  //background-image: url(/images/test.jpg);
+  //background-size: cover;
 }
 
 .loginContainer{
   position: fixed;
-  width: 300px;
-  height: auto;
-  left: 50%;
-  top: 50%;
+  width: 400px;
+  height: 260px;
+  left: 15%;
+  top: 45%;
 
   background-color: rgba(255, 255, 255, 0.7);
   transform: translate(-50%, -50%);
 
   border: 10px solid rgba(0, 0, 0, .4);
-  border-radius: 5px;
+  border-radius: 10px;
   padding: 10px;
   box-sizing: border-box;
+
+  padding-top: 30px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  & > * {
+    margin-bottom: 5px;
+    margin-top: 5px;
+
+    font-family: "Trebuchet MS", Helvetica, sans-serif;
+    border: none;
+    text-decoration: none;
+  }
+}
+
+.loginPlayContainer {
+  position: fixed;
+  width: 400px;
+  height: 300px;
+  left: 15%;
+  top: 45%;
+
+  background-color: rgba(255, 255, 255, 0.7);
+  transform: translate(-50%, -50%);
+
+  border: 10px solid rgba(0, 0, 0, .4);
+  border-radius: 10px;
+  padding: 10px;
+  box-sizing: border-box;
+
+  padding-top: 30px;
 
   display: flex;
   flex-direction: column;
@@ -34,22 +76,52 @@
 
 .welcomeContainer{
   flex-direction: row;
-  font-family: Impact, Charcoal, sans-serif;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
   font-size: xx-large;
 }
 
 .playButton{
-  font-size: large;
+  width: 200px;
+  font-size: xx-large;
   font-weight: bold;
-  background-color: rgba(0, 0, 0, .2);
+  background-color: rgba(143, 253, 53, .2);
+
+  margin-top: 15px;
+
+  border: 3px solid rgba(0, 0, 0, .4);
+  border-radius: 5px;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .resetButton {
   font-size: small;
-  background-color: rgba(0, 0, 0, .1);
+  background-color: rgba(253, 53, 66, .1);
+
+  margin-top: 15px;
+
+  border: 3px solid rgba(0, 0, 0, .4);
+  border-radius: 5px;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .backgroundVideo{
+   position: fixed;
+
+   min-width: 100%;
+   min-height: 100%;
+   width: auto;
+   height: auto;
+
+   z-index: 0;
+ }
+
+.background{
+
+  background-image: url(/images/menu.svg);
+
+
   position: fixed;
 
   min-width: 100%;

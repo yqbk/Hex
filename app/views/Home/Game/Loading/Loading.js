@@ -9,8 +9,9 @@ class Loading extends Component {
   render () {
     const { game } = this.props
     return (
-      <div style={{ width: '100vw', height: '100vh', backgroundColor: 'white' }}>
-        <div className={style.container}>
+      <div className={style.container}>
+        <div className={style.background} />
+        <div className={style.containerPlayers}>
           {
             game.players.map((player, i) => (
               <div

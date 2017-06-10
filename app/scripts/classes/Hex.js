@@ -219,7 +219,7 @@ class Hex {
     if (owner) {
       this.owner = owner
       this.armyNumber.style.fill = `#${owner.color}`
-      this.armyIcon.tint = `0x${owner.color}`
+      // this.armyIcon.tint = `0x${owner.color}`
     }
 
     if (this.owner && this.owner.id === me.id && (value !== 0 || this.castle)) {
