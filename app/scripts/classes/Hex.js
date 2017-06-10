@@ -61,6 +61,8 @@ window.addEventListener('keyup', ({ keyCode }) => {
   }
 })
 
+
+
 class Hex {
   constructor ({ id, x, y, type = 'grass', neighbours, owner, army, castle }) {
     this.handleClick = this.handleClick.bind(this)

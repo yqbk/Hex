@@ -17,6 +17,8 @@ const controlPadding = 30
 let distanceX = 0
 let distanceY = 0
 
+let scale = 1
+
 let interval
 
 const WIDTH = window.innerWidth
@@ -73,7 +75,11 @@ function scrollScreen (e) {
 }
 
 function zoomScreen (e) {
+  const zoom = (e.deltaY / 300)
+  const testScale = scale
+  const shouldUpdate = (((testScale + zoom) > 1) && ((testScale + zoom) < 3))
 
+  scale += shouldUpdate ? zoom : 0
 }
 
 export default function init (spawnPosition, onLoad) {
@@ -87,7 +93,6 @@ export default function init (spawnPosition, onLoad) {
   })
   map.appendChild(app.view)
 
-  let scale = 2
 
   container = new PIXI.Container()
   container.scale.x = scale
@@ -145,7 +150,7 @@ export default function init (spawnPosition, onLoad) {
     }
   }
 
-  //todo zoom on mouseWheel
+  // todo zoom on mouseWheel
 
   interval = setInterval(() => {
     if (distanceX || distanceY) {
@@ -156,9 +161,16 @@ export default function init (spawnPosition, onLoad) {
       container.x = container.x > 0 ? 0 : container.x
       container.y = container.y > 0 ? 0 : container.y
     }
+
+    if (scale) {
+      container.scale.x = scale
+      container.scale.y = scale
+    }
   }, 33)
 
   window.addEventListener('mousemove', scrollScreen)
+  window.addEventListener('wheel', zoomScreen)
+
 
   listener()
     .on(GET_MAP, ({ map: gridMap }) => {
