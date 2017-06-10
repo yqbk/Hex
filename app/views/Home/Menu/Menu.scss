@@ -20,7 +20,7 @@
   top: 45%;
 
   background-color: rgba(255, 255, 255, 0.7);
-  transform: translate(-50%, -50%);
+  //transform: translate(-50%, -50%);
 
   border: 10px solid rgba(0, 0, 0, .4);
   border-radius: 10px;
@@ -120,6 +120,7 @@
 .background{
 
   background-image: url(/images/menu.svg);
+  background-size: cover;
 
 
   position: fixed;
