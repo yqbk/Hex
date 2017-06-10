@@ -16,8 +16,8 @@
   position: fixed;
   width: 400px;
   height: 260px;
-  left: 15%;
-  top: 45%;
+  margin-left: 50px;
+  margin-top: 150px;
 
   background-color: rgba(255, 255, 255, 0.7);
   //transform: translate(-50%, -50%);
@@ -47,11 +47,12 @@
   position: fixed;
   width: 400px;
   height: 300px;
-  left: 15%;
-  top: 45%;
+
+  margin-left: 50px;
+  margin-top: 150px;
 
   background-color: rgba(255, 255, 255, 0.7);
-  transform: translate(-50%, -50%);
+
 
   border: 10px solid rgba(0, 0, 0, .4);
   border-radius: 10px;
@@ -94,6 +95,10 @@
   box-sizing: border-box;
 }
 
+.playButton:hover {
+  background-color: rgba(143, 253, 53, .5);
+}
+
 .resetButton {
   font-size: small;
   background-color: rgba(253, 53, 66, .1);
@@ -104,6 +109,10 @@
   border-radius: 5px;
   padding: 10px;
   box-sizing: border-box;
+}
+
+.resetButton:hover {
+  background-color: rgba(253, 53, 66, .5);
 }
 
 .backgroundVideo{
@@ -135,4 +144,8 @@
 
 .input {
   width: 100%;
+}
+
+a:hover {
+background-color: white;
 }
