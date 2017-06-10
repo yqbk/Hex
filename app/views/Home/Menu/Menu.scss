@@ -16,11 +16,15 @@
   position: fixed;
   width: 400px;
   height: 260px;
-  margin-left: 50px;
-  margin-top: 150px;
+  //margin-left: 50px;
+  //margin-top: 150px;
+
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 
   background-color: rgba(255, 255, 255, 0.7);
-  //transform: translate(-50%, -50%);
+
 
   border: 10px solid rgba(0, 0, 0, .4);
   border-radius: 10px;
@@ -48,8 +52,9 @@
   width: 400px;
   height: 300px;
 
-  margin-left: 50px;
-  margin-top: 150px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 
   background-color: rgba(255, 255, 255, 0.7);
 
@@ -93,6 +98,8 @@
   border-radius: 5px;
   padding: 10px;
   box-sizing: border-box;
+
+  cursor: pointer;
 }
 
 .playButton:hover {
@@ -109,6 +116,8 @@
   border-radius: 5px;
   padding: 10px;
   box-sizing: border-box;
+
+  cursor: pointer;
 }
 
 .resetButton:hover {
