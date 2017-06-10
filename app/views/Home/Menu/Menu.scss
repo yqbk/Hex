@@ -124,16 +124,34 @@
   background-color: rgba(253, 53, 66, .5);
 }
 
+.okButton{
+  width: 200px;
+  font-size: xx-large;
+  font-weight: bold;
+  background-color: rgba(143, 253, 53, .2);
+
+  margin-top: 15px;
+
+  border: 3px solid rgba(0, 0, 0, .4);
+  border-radius: 5px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.okButton:hover {
+  background-color: rgba(143, 253, 53, .5);
+}
+
 .backgroundVideo{
-   position: fixed;
+  position: fixed;
 
-   min-width: 100%;
-   min-height: 100%;
-   width: auto;
-   height: auto;
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
 
-   z-index: 0;
- }
+  z-index: 0;
+}
 
 .background{
 
@@ -153,8 +171,9 @@
 
 .input {
   width: 100%;
+  font-size: xx-large;
 }
 
 a:hover {
-background-color: white;
+  background-color: white;
 }

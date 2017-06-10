@@ -37,9 +37,14 @@ class Name extends Component {
   render () {
     return (
       <div className={style.container}>
-        <span>Enter your name</span>
-        <input className={style.input} onChange={this.handleChange} onKeyDown={this.handleKeyDown} />
-        <button onClick={this.handleOK}>OK</button>
+        <div className={style.background} />
+        <div className={style.loginContainer}>
+          <div className={style.welcomeContainer}>
+            <span>Enter your name</span>
+          </div>
+          <input className={style.input} onChange={this.handleChange} onKeyDown={this.handleKeyDown} />
+          <button className={style.okButton} onClick={this.handleOK}>OK</button>
+        </div>
       </div>
     )
   }
